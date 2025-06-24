@@ -69,19 +69,19 @@
 
 @layer utilities {
   .crypto-gold {
-    color: hsl(var(--crypto-gold));
+    color: hsl(50, 88%, 50%);
   }
   
   .bg-crypto-gold {
-    background-color: hsl(var(--crypto-gold));
+    background-color: hsl(50, 88%, 50%) !important;
   }
   
   .crypto-cyan {
-    color: hsl(var(--crypto-cyan));
+    color: hsl(207, 100%, 64%);
   }
   
   .bg-crypto-cyan {
-    background-color: hsl(var(--crypto-cyan));
+    background-color: hsl(207, 100%, 64%) !important;
   }
   
   .neutral-50 {
