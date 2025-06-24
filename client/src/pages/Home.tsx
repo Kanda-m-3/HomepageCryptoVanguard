@@ -40,10 +40,6 @@ export default function Home() {
                     variant="outline" 
                     size="lg" 
                     className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-neutral-900 font-semibold px-8 py-4 transition-all duration-300"
-                    style={{
-                      borderColor: 'white',
-                      color: 'white'
-                    }}
                   >
                     VIPコミュニティを詳しく見る
                   </Button>
