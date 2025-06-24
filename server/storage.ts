@@ -87,6 +87,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
+      email: insertUser.email ?? null,
       stripeCustomerId: null,
       stripeSubscriptionId: null,
     };
@@ -121,6 +122,7 @@ export class MemStorage implements IStorage {
     const report: AnalyticalReport = {
       ...insertReport,
       id,
+      isFreeSample: insertReport.isFreeSample ?? false,
       createdAt: new Date(),
     };
     this.reports.set(id, report);
@@ -132,6 +134,8 @@ export class MemStorage implements IStorage {
     const purchase: Purchase = {
       ...insertPurchase,
       id,
+      userId: insertPurchase.userId ?? null,
+      reportId: insertPurchase.reportId ?? null,
       purchasedAt: new Date(),
     };
     this.purchases.set(id, purchase);
