@@ -1,0 +1,59 @@
+Please create a Japanese website (responsive for both desktop and smartphone viewports) as described below.
+
+# Website Name, Meaning, etc.
+
+* **Name:** "Crypto Vanguard"
+* **Meaning:** "Vanguard" = As a DeFi/Web3 frontier, an elite community specializing in next‑generation finance and Web3 that gathers and analyzes information at the forefront of the crypto‑asset market to capture upcoming trends.
+* **Slogan:** "Become the Vanguard and Ride the Crypto Wave"
+
+# Website Content
+
+* Description of the **"Crypto Vanguard"** community (see **Community Description** below)
+* Explanation of and invitation to join the **"Crypto Vanguard"** Discord server
+* Invitation to join the **Exclusive VIP Community** (see **Exclusive VIP Community Description** below)
+* À‑la‑carte sale of selected analytical reports for VIP members (including distribution of free samples)
+
+## Community Description
+
+* An investor community pioneering the forefront of DeFi & Web3
+* As an information network specialized in next‑generation finance and the Web3 ecosystem, this "Vanguard" community collects and analyzes information at the forefront of the crypto‑asset market to provide insights that help investors seize the next major wave
+* Timely sharing of next‑generation Web3 trends such as DeFi, NFTs, GameFi, Layer‑2, and AI×Crypto
+* Anticipation of whale movements through on‑chain data analysis
+* A venue to learn strategies for maximizing returns, including staking, airdrops, and pre‑public investment opportunities
+
+## Exclusive VIP Community Description
+
+* Joining the Exclusive VIP Community grants access to expert analysis, trading signals, exclusive insights, and private discussions with crypto specialists.
+
+# Website Structure
+
+* **Home Page:** Primarily features the **"Crypto Vanguard"** community description. The remaining three content areas—(1) **Explanation of and invitation to join the "Crypto Vanguard" Discord server**, (2) **Invitation to join the Exclusive VIP Community**, and (3) **À‑la‑carte sale of selected analytical reports for VIP members (including free samples)**—are presented only in outline, with full details provided on dedicated second‑level pages. The footer should include links to standard pages such as **Terms of Service** and **Privacy Policy**.
+* **Exclusive VIP Community Page:** An existing page ("CryptoVanguardMembership" created under this Replit account) already serves this purpose, so only an empty placeholder page needs to be created here.
+* **Discord Server Page:** Provides a detailed guide on how to join the "Crypto Vanguard" Discord server. Include the server’s invitation link to direct users seamlessly.
+* **Analytical Reports Page:** Allows users to download a free sample analytical report as an example. Past expert reports on crypto assets previously distributed to VIP members will be sold as downloadable content, utilizing **Stripe** as the payment platform.
+
+# Website Design Suggestions
+
+1. **Hybrid Color Palette (Trust × Innovation)**
+
+   * **Base:** Use white or light gray backgrounds to achieve private‑bank‑level cleanliness.
+   * **Accent:** Apply crypto‑themed Gold `#F1C40F` or Cyan `#4ABAFF` sparingly for emphasis.
+
+2. **Selective Real‑Time Elements**
+
+   * Incorporate only real‑time components such as price tickers borrowed from traditional crypto sites. (Using CoinGecko API to obtain the price information of major crypto currencies, such as Bitcoin, Ethereum, XRP, etc.)
+   * Organize all other information pathways in an editorial style (e.g., UBS's website) to reassure business‑oriented audiences.
+
+3. **Visual Balance**
+
+   * Design the hero section with a high‑resolution photograph depicting wealth‑building scenarios.
+   * Add Web3 flair through custom icons positioned alongside the hero image.
+
+4. **Typography**
+
+   * Employ geometric sans‑serif fonts for body text to convey trustworthiness.
+   * Use slightly bolder weights for headings to create a clear hierarchy and contrast.
+
+5. **CTA Color Strategy**
+
+   * Reserve the brand accent color exclusively for CTA buttons to focus visual attention.
