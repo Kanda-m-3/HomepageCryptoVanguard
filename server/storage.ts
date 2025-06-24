@@ -1,4 +1,6 @@
 import { users, analyticalReports, purchases, type User, type InsertUser, type AnalyticalReport, type InsertAnalyticalReport, type Purchase, type InsertPurchase } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -155,4 +157,84 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        email: insertUser.email ?? null,
+      })
+      .returning();
+    return user;
+  }
+
+  async updateStripeCustomerId(userId: number, customerId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ stripeCustomerId: customerId })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async getAllReports(): Promise<AnalyticalReport[]> {
+    return await db.select().from(analyticalReports);
+  }
+
+  async getReport(id: number): Promise<AnalyticalReport | undefined> {
+    const [report] = await db.select().from(analyticalReports).where(eq(analyticalReports.id, id));
+    return report || undefined;
+  }
+
+  async getFreeSampleReports(): Promise<AnalyticalReport[]> {
+    return await db.select().from(analyticalReports).where(eq(analyticalReports.isFreeSample, true));
+  }
+
+  async createReport(insertReport: InsertAnalyticalReport): Promise<AnalyticalReport> {
+    const [report] = await db
+      .insert(analyticalReports)
+      .values({
+        ...insertReport,
+        isFreeSample: insertReport.isFreeSample ?? false,
+      })
+      .returning();
+    return report;
+  }
+
+  async createPurchase(insertPurchase: InsertPurchase): Promise<Purchase> {
+    const [purchase] = await db
+      .insert(purchases)
+      .values({
+        ...insertPurchase,
+        userId: insertPurchase.userId ?? null,
+        reportId: insertPurchase.reportId ?? null,
+      })
+      .returning();
+    return purchase;
+  }
+
+  async getUserPurchases(userId: number): Promise<Purchase[]> {
+    return await db.select().from(purchases).where(eq(purchases.userId, userId));
+  }
+
+  async hasUserPurchasedReport(userId: number, reportId: number): Promise<boolean> {
+    const [purchase] = await db
+      .select()
+      .from(purchases)
+      .where(and(eq(purchases.userId, userId), eq(purchases.reportId, reportId)));
+    return !!purchase;
+  }
+}
+
+export const storage = new DatabaseStorage();

@@ -10,7 +10,7 @@ This is a full-stack web application built with a modern TypeScript stack:
 
 **Frontend**: React with Vite, TypeScript, TailwindCSS, and shadcn/ui components
 **Backend**: Express.js server with TypeScript
-**Database**: PostgreSQL with Drizzle ORM
+**Database**: PostgreSQL with Drizzle ORM (DatabaseStorage implementation)
 **Payment Processing**: Stripe integration for report purchases and subscriptions
 **Deployment**: Replit with autoscale deployment target
 
@@ -38,7 +38,7 @@ Three main entities:
 - **Purchases**: Transaction records linking users to purchased content
 
 ### Authentication Strategy
-The application is prepared for user authentication with Stripe customer integration, though the current implementation uses a memory storage layer that can be easily replaced with the full Drizzle database implementation.
+The application is prepared for user authentication with Stripe customer integration, using a full PostgreSQL database implementation through Drizzle ORM for persistent data storage.
 
 ## Data Flow
 
@@ -68,8 +68,11 @@ The deployment includes PostgreSQL module for database connectivity and is optim
 
 ## Changelog
 
-Changelog:
-- June 24, 2025. Initial setup
+## Recent Changes
+- June 24, 2025: Initial setup completed
+- June 24, 2025: Replaced hero section background with brighter crypto trading image
+- June 24, 2025: Migrated from memory storage to PostgreSQL database implementation
+- June 24, 2025: Sample analytical reports populated in database
 
 ## User Preferences
 
