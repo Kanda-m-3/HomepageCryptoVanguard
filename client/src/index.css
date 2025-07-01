@@ -115,4 +115,17 @@
   .bg-neutral-900 {
     background-color: hsl(var(--neutral-900));
   }
+
+  .animate-scroll {
+    animation: scroll 60s linear infinite;
+  }
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
 }

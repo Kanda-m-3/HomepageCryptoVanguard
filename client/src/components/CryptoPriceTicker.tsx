@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 
 export default function CryptoPriceTicker() {
   const { data: prices, isLoading, error } = useCryptoPrices();
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   const cryptoTokens = [
     { 
@@ -70,17 +69,6 @@ export default function CryptoPriceTicker() {
     }
   ];
 
-  // Auto-carousel functionality
-  useEffect(() => {
-    if (!isLoading && prices) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prevIndex) => (prevIndex + 1) % Math.ceil(cryptoTokens.length / 3));
-      }, 3000); // Change every 3 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [isLoading, prices, cryptoTokens.length]);
-
   if (error) {
     return (
       <div className="mt-16 bg-neutral-50 border-b border-gray-200">
@@ -105,57 +93,41 @@ export default function CryptoPriceTicker() {
     return price.toFixed(decimals);
   };
 
-  // Get current visible tokens (3 at a time)
-  const visibleTokens = cryptoTokens.slice(currentIndex * 3, (currentIndex + 1) * 3);
-  
-  // If we don't have enough tokens to fill 3 slots, add from the beginning
-  while (visibleTokens.length < 3 && cryptoTokens.length > 0) {
-    const remainingIndex = (currentIndex * 3 + visibleTokens.length) % cryptoTokens.length;
-    visibleTokens.push(cryptoTokens[remainingIndex]);
-  }
+  const renderTokenItem = (token: any, key: string) => {
+    const tokenData = getTokenPrice(token.key);
+    return (
+      <div key={key} className="flex items-center whitespace-nowrap px-8">
+        {token.icon}
+        <span className="font-medium">{token.symbol}</span>
+        {isLoading ? (
+          <Skeleton className="ml-2 h-4 w-20" />
+        ) : (
+          <span className="ml-2 neutral-600">
+            ${tokenData?.usd ? formatPrice(tokenData.usd, token.decimals) : "---"}
+            {tokenData?.usd_24h_change && (
+              <span
+                className={`ml-1 ${
+                  tokenData.usd_24h_change >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {tokenData.usd_24h_change >= 0 ? "+" : ""}
+                {tokenData.usd_24h_change.toFixed(2)}%
+              </span>
+            )}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="mt-16 bg-neutral-50 border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex items-center justify-center space-x-8 text-sm">
-          {visibleTokens.map((token, index) => {
-            const tokenData = getTokenPrice(token.key);
-            return (
-              <div key={`${token.key}-${index}`} className="flex items-center min-w-0">
-                {token.icon}
-                <span className="font-medium">{token.symbol}</span>
-                {isLoading ? (
-                  <Skeleton className="ml-2 h-4 w-20" />
-                ) : (
-                  <span className="ml-2 neutral-600 whitespace-nowrap">
-                    ${tokenData?.usd ? formatPrice(tokenData.usd, token.decimals) : "---"}
-                    {tokenData?.usd_24h_change && (
-                      <span
-                        className={`ml-1 ${
-                          tokenData.usd_24h_change >= 0 ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {tokenData.usd_24h_change >= 0 ? "+" : ""}
-                        {tokenData.usd_24h_change.toFixed(2)}%
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Carousel indicators */}
-        <div className="flex justify-center mt-2 space-x-1">
-          {Array.from({ length: Math.ceil(cryptoTokens.length / 3) }, (_, index) => (
-            <div
-              key={index}
-              className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                index === currentIndex ? 'bg-crypto-gold' : 'bg-gray-300'
-              }`}
-            />
-          ))}
+      <div className="w-full overflow-hidden py-3">
+        <div className="flex animate-scroll text-sm">
+          {/* First set of tokens */}
+          {cryptoTokens.map((token) => renderTokenItem(token, `first-${token.key}`))}
+          {/* Duplicate set for seamless loop */}
+          {cryptoTokens.map((token) => renderTokenItem(token, `second-${token.key}`))}
         </div>
       </div>
     </div>
