@@ -17,7 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/crypto-prices", async (req, res) => {
     try {
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple&vs_currencies=usd&include_24hr_change=true'
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,binancecoin,solana,dogecoin,the-open-network,shiba-inu,cardano,avalanche-2&vs_currencies=usd&include_24hr_change=true'
       );
       if (!response.ok) {
         throw new Error('Failed to fetch crypto prices');

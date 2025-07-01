@@ -9,6 +9,13 @@ interface CryptoPrices {
   bitcoin: CryptoPriceData;
   ethereum: CryptoPriceData;
   ripple: CryptoPriceData;
+  binancecoin: CryptoPriceData;
+  solana: CryptoPriceData;
+  dogecoin: CryptoPriceData;
+  "the-open-network": CryptoPriceData;
+  "shiba-inu": CryptoPriceData;
+  cardano: CryptoPriceData;
+  "avalanche-2": CryptoPriceData;
 }
 
 export function useCryptoPrices() {
