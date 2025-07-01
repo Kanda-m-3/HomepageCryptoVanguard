@@ -5,7 +5,7 @@ import { Users, MessageSquare, TrendingUp, BookOpen, ArrowRight, ExternalLink } 
 import { FaDiscord } from "react-icons/fa";
 
 export default function Discord() {
-  const discordInviteUrl = "https://discord.gg/cryptovanguard"; // This would be the actual Discord invite link
+  const discordInviteUrl = "https://discord.gg/EP4dss5rB9";
 
   const features = [
     {
