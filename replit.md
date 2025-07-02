@@ -69,6 +69,11 @@ The deployment includes PostgreSQL module for database connectivity and is optim
 ## Changelog
 
 ## Recent Changes
+- July 1, 2025: Enhanced crypto price ticker with all 10 tokens and smooth endless scrolling animation
+- July 1, 2025: Updated Discord server invitation URL to https://discord.gg/EP4dss5rB9
+- July 1, 2025: Created complete Terms of Service page with Japanese legal content
+- July 1, 2025: Created comprehensive Privacy Policy page with Japanese legal content
+- July 1, 2025: Removed Premium Signals link from footer navigation
 - June 24, 2025: Initial setup completed
 - June 24, 2025: Replaced hero section background with brighter crypto trading image
 - June 24, 2025: Migrated from memory storage to PostgreSQL database implementation

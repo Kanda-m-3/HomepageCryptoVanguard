@@ -53,11 +53,7 @@ export default function Footer() {
                   </span>
                 </Link>
               </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:crypto-gold transition-colors duration-300">
-                  プレミアムシグナル
-                </a>
-              </li>
+
             </ul>
           </div>
 
