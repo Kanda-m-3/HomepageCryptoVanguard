@@ -10,6 +10,7 @@ import Discord from "@/pages/Discord";
 import VipCommunity from "@/pages/VipCommunity";
 import AnalyticalReports from "@/pages/AnalyticalReports";
 import Checkout from "@/pages/Checkout";
+import TermsOfService from "@/pages/TermsOfService";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/vip" component={VipCommunity} />
       <Route path="/reports" component={AnalyticalReports} />
       <Route path="/checkout/:reportId" component={Checkout} />
+      <Route path="/terms-of-service" component={TermsOfService} />
       <Route component={NotFound} />
     </Switch>
   );

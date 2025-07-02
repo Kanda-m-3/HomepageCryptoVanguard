@@ -75,9 +75,9 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:crypto-gold transition-colors duration-300">
+                <Link href="/terms-of-service" className="text-gray-400 hover:crypto-gold transition-colors duration-300">
                   利用規約
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="#" className="text-gray-400 hover:crypto-gold transition-colors duration-300">
