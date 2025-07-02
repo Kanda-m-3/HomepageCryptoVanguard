@@ -62,7 +62,7 @@ export default function Discord() {
         <Card className="mb-12 bg-gradient-to-r from-crypto-cyan to-blue-500 text-white">
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold mb-4 text-[#030303]">今すぐ無料で参加しよう</h2>
-            <p className="text-lg mb-6 opacity-90">
+            <p className="text-lg mb-6 opacity-90 text-[#030303]">
               クリック一つで、Crypto Vanguardの活発なコミュニティに参加できます
             </p>
             <Button 
