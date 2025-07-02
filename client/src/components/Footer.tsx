@@ -65,11 +65,7 @@ export default function Footer() {
                   よくある質問
                 </a>
               </li>
-              <li>
-                <a href="#" className="text-gray-400 hover:crypto-gold transition-colors duration-300">
-                  お問い合わせ
-                </a>
-              </li>
+
               <li>
                 <Link href="/terms-of-service" className="text-gray-400 hover:crypto-gold transition-colors duration-300">
                   利用規約
