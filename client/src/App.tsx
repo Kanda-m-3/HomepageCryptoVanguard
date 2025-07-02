@@ -11,6 +11,7 @@ import VipCommunity from "@/pages/VipCommunity";
 import AnalyticalReports from "@/pages/AnalyticalReports";
 import Checkout from "@/pages/Checkout";
 import TermsOfService from "@/pages/TermsOfService";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/reports" component={AnalyticalReports} />
       <Route path="/checkout/:reportId" component={Checkout} />
       <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route component={NotFound} />
     </Switch>
   );
