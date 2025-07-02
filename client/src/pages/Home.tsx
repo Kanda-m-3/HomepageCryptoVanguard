@@ -223,7 +223,7 @@ export default function Home() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="bg-transparent border-2 border-crypto-gold text-crypto-gold hover:bg-crypto-gold hover:text-neutral-900 font-semibold px-8 py-4 transition-all duration-300"
+                className="bg-transparent border-2 border-crypto-gold text-white hover:bg-crypto-gold hover:text-neutral-900 font-semibold px-8 py-4 transition-all duration-300"
               >
                 VIPコミュニティを詳しく見る
               </Button>
