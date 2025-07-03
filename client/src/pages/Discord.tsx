@@ -1,14 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  MessageSquare,
-  TrendingUp,
-  BookOpen,
-  ArrowRight,
-  ExternalLink,
-} from "lucide-react";
+import { Users, MessageSquare, TrendingUp, BookOpen, ArrowRight, ExternalLink } from "lucide-react";
 import { FaDiscord } from "react-icons/fa";
 
 export default function Discord() {
@@ -17,42 +10,33 @@ export default function Discord() {
   const features = [
     {
       icon: <MessageSquare className="h-6 w-6" />,
-      title: "暗号資産関連のニュース配信",
-      description: "暗号資産関連の各種ニュースを日本語で毎日配信",
+      title: "リアルタイム市場ディスカッション",
+      description: "24時間アクティブなコミュニティで、暗号資産市場の最新動向について議論"
     },
     {
       icon: <TrendingUp className="h-6 w-6" />,
-      title: "新規プロジェクトの分析",
-      description: "市場で注目されるクリプト関連の各種プロジェクトを概要説明",
+      title: "基本的な市場分析",
+      description: "主要暗号資産の価格動向と基本的なテクニカル分析を毎日共有"
     },
     {
       icon: <BookOpen className="h-6 w-6" />,
-      title: "初心者向けツール説明",
-      description: "暗号資産投資で利用できる各種ツール類を初心者向けに説明",
+      title: "初心者向け教育コンテンツ",
+      description: "暗号資産投資の基礎から学べる教材とガイドを無料で提供"
     },
     {
       icon: <Users className="h-6 w-6" />,
       title: "投資家コミュニティ",
-      description: "同じ志を持つ投資家たちとのネットワーキングと情報交換",
-    },
+      description: "同じ志を持つ投資家たちとのネットワーキングと情報交換"
+    }
   ];
 
   const channels = [
-    {
-      name: "📢 | 公式アナウンス",
-      description: "Crypto Vanguardの運営者からの公式情報",
-    },
-    { name: "📜 | ルール", description: "コミュニケーション内のルール" },
-    {
-      name: "🔥 | クリプトニュース",
-      description: "クリプト関連の毎日のニュース",
-    },
-    { name: "💬 | 雑談", description: "コミュニティ参加者の情報交換" },
-    {
-      name: "🔍 | プロジェクト分析",
-      description: "クリプト関連の各種プロジェクトの分析",
-    },
-    { name: "🧰 | ツール紹介", description: "各種ツール類の紹介、使い方説明" },
+    { name: "🏛️ | 公式アナウンス", description: "重要な市場ニュースと公式情報" },
+    { name: "💰 | 価格ディスカッション", description: "日々の価格動向について議論" },
+    { name: "📊 | 基本分析", description: "市場の基本的な分析と見通し" },
+    { name: "❓ | 初心者質問", description: "暗号資産投資の疑問を解決" },
+    { name: "🔗 | ニュース共有", description: "業界の最新ニュースをシェア" },
+    { name: "💬 | 雑談", description: "コミュニティメンバーとの交流" }
   ];
 
   return (
@@ -77,16 +61,14 @@ export default function Discord() {
         {/* Join Discord CTA */}
         <Card className="mb-12 bg-gradient-to-r from-crypto-cyan to-blue-500 text-white">
           <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4 text-[#030303]">
-              今すぐ無料で参加しよう
-            </h2>
+            <h2 className="text-2xl font-bold mb-4 text-[#030303]">今すぐ無料で参加しよう</h2>
             <p className="text-lg mb-6 opacity-90 text-[#030303]">
               クリック一つで、Crypto Vanguardの活発なコミュニティに参加できます
             </p>
-            <Button
+            <Button 
               size="lg"
               className="text-crypto-cyan hover:bg-gray-100 font-bold px-12 py-6 text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20 bg-[#74acff]"
-              onClick={() => window.open(discordInviteUrl, "_blank")}
+              onClick={() => window.open(discordInviteUrl, '_blank')}
             >
               <FaDiscord className="mr-2 h-5 w-5" />
               Discordサーバーに参加
@@ -102,10 +84,7 @@ export default function Discord() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {features.map((feature, index) => (
-              <Card
-                key={index}
-                className="bg-white hover:shadow-lg transition-shadow duration-300"
-              >
+              <Card key={index} className="bg-white hover:shadow-lg transition-shadow duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 bg-crypto-cyan/10 rounded-lg flex items-center justify-center crypto-cyan">
@@ -129,9 +108,7 @@ export default function Discord() {
         {/* Channel Structure */}
         <Card className="mb-12">
           <CardHeader>
-            <CardTitle className="text-2xl neutral-900">
-              チャンネル構成
-            </CardTitle>
+            <CardTitle className="text-2xl neutral-900">チャンネル構成</CardTitle>
             <p className="neutral-600">
               整理されたチャンネル構成で、効率的に情報収集ができます
             </p>
@@ -139,17 +116,10 @@ export default function Discord() {
           <CardContent>
             <div className="space-y-4">
               {channels.map((channel, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                >
+                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <span className="font-semibold neutral-900">
-                      {channel.name}
-                    </span>
-                    <p className="text-sm neutral-600 mt-1">
-                      {channel.description}
-                    </p>
+                    <span className="font-semibold neutral-900">{channel.name}</span>
+                    <p className="text-sm neutral-600 mt-1">{channel.description}</p>
                   </div>
                   <Badge variant="secondary">アクティブ</Badge>
                 </div>
@@ -170,54 +140,38 @@ export default function Discord() {
                   1
                 </div>
                 <div>
-                  <h3 className="font-semibold neutral-900 mb-2">
-                    Discord招待リンクをクリック
-                  </h3>
-                  <p className="neutral-600">
-                    上記のボタンからDiscordサーバーの招待リンクにアクセスします。
-                  </p>
+                  <h3 className="font-semibold neutral-900 mb-2">Discord招待リンクをクリック</h3>
+                  <p className="neutral-600">上記のボタンからDiscordサーバーの招待リンクにアクセスします。</p>
                 </div>
               </div>
-
+              
               <div className="flex items-start space-x-4">
                 <div className="w-8 h-8 bg-crypto-gold rounded-full flex items-center justify-center text-neutral-900 font-bold text-sm">
                   2
                 </div>
                 <div>
-                  <h3 className="font-semibold neutral-900 mb-2">
-                    Discordアカウントでログイン
-                  </h3>
-                  <p className="neutral-600">
-                    既存のDiscordアカウントでログインするか、新規アカウントを作成します。
-                  </p>
+                  <h3 className="font-semibold neutral-900 mb-2">Discordアカウントでログイン</h3>
+                  <p className="neutral-600">既存のDiscordアカウントでログインするか、新規アカウントを作成します。</p>
                 </div>
               </div>
-
+              
               <div className="flex items-start space-x-4">
                 <div className="w-8 h-8 bg-crypto-gold rounded-full flex items-center justify-center text-neutral-900 font-bold text-sm">
                   3
                 </div>
                 <div>
-                  <h3 className="font-semibold neutral-900 mb-2">
-                    サーバールールを確認
-                  </h3>
-                  <p className="neutral-600">
-                    コミュニティルールを読み、適切なマナーでディスカッションに参加します。
-                  </p>
+                  <h3 className="font-semibold neutral-900 mb-2">サーバールールを確認</h3>
+                  <p className="neutral-600">コミュニティルールを読み、適切なマナーでディスカッションに参加します。</p>
                 </div>
               </div>
-
+              
               <div className="flex items-start space-x-4">
                 <div className="w-8 h-8 bg-crypto-gold rounded-full flex items-center justify-center text-neutral-900 font-bold text-sm">
                   4
                 </div>
                 <div>
-                  <h3 className="font-semibold neutral-900 mb-2">
-                    自己紹介とディスカッション開始
-                  </h3>
-                  <p className="neutral-600">
-                    自己紹介チャンネルで挨拶し、興味のあるトピックでディスカッションを始めましょう。
-                  </p>
+                  <h3 className="font-semibold neutral-900 mb-2">自己紹介とディスカッション開始</h3>
+                  <p className="neutral-600">自己紹介チャンネルで挨拶し、興味のあるトピックでディスカッションを始めましょう。</p>
                 </div>
               </div>
             </div>
@@ -232,10 +186,10 @@ export default function Discord() {
           <p className="neutral-600 mb-8">
             無料で参加でき、いつでも退会可能です。まずは気軽にのぞいてみてください。
           </p>
-          <Button
+          <Button 
             size="lg"
             className="bg-crypto-cyan hover:bg-blue-400 text-white font-semibold px-8 py-4"
-            onClick={() => window.open(discordInviteUrl, "_blank")}
+            onClick={() => window.open(discordInviteUrl, '_blank')}
           >
             <FaDiscord className="mr-2 h-5 w-5" />
             Discordサーバーに参加する
