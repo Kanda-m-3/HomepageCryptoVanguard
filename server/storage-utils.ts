@@ -13,12 +13,13 @@ export function generateObjectStorageUrl(bucketName: string, fileName: string): 
 }
 
 /**
- * Generate Object Storage URL specifically for ReportPDFs bucket
+ * Generate server proxy URL for PDF files served from Object Storage
  * @param fileName - The name of the PDF file
- * @returns The complete Object Storage URL for ReportPDFs bucket
+ * @returns The server proxy URL to access the PDF file
  */
 export function generateReportPdfUrl(fileName: string): string {
-  return generateObjectStorageUrl('ReportPDFs', fileName);
+  const encodedFileName = encodeURIComponent(fileName);
+  return `/api/serve-pdf/${encodedFileName}`;
 }
 
 /**
