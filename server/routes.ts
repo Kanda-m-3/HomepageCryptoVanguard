@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
+import { generateDownloadUrl } from "./objectStorage";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -46,6 +47,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reports);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching sample reports: " + error.message });
+    }
+  });
+
+  // Download free sample report
+  app.get("/api/reports/:id/download-sample", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await storage.getReport(reportId);
+      
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      if (!report.isFreeSample) {
+        return res.status(403).json({ message: "This report is not a free sample" });
+      }
+
+      // Generate presigned download URL from Object Storage
+      const downloadUrl = await generateDownloadUrl(report.objectStorageKey);
+      
+      res.json({ 
+        success: true, 
+        downloadUrl,
+        title: report.title
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error generating sample download: " + error.message });
     }
   });
 
@@ -125,10 +153,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: report.price,
       });
 
+      // Generate presigned download URL from Object Storage
+      const downloadUrl = await generateDownloadUrl(report.objectStorageKey);
+      
       res.json({ 
         success: true, 
         purchase,
-        downloadUrl: report.fileUrl,
+        downloadUrl,
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error confirming purchase: " + error.message });

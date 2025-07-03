@@ -69,6 +69,10 @@ The deployment includes PostgreSQL module for database connectivity and is optim
 ## Changelog
 
 ## Recent Changes
+- January 3, 2025: Migrated file storage from direct URLs to Replit Object Storage integration
+- January 3, 2025: Updated database schema: `file_url` column renamed to `object_storage_key`
+- January 3, 2025: Implemented presigned URL generation for secure file downloads
+- January 3, 2025: Added Object Storage utilities for file upload, download, and metadata management
 - July 1, 2025: Enhanced crypto price ticker with all 10 tokens and smooth endless scrolling animation
 - July 1, 2025: Updated Discord server invitation URL to https://discord.gg/EP4dss5rB9
 - July 1, 2025: Created complete Terms of Service page with Japanese legal content
