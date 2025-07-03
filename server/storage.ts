@@ -12,6 +12,7 @@ export interface IStorage {
   getReport(id: number): Promise<AnalyticalReport | undefined>;
   getFreeSampleReports(): Promise<AnalyticalReport[]>;
   createReport(report: InsertAnalyticalReport): Promise<AnalyticalReport>;
+  updateReportFileUrl(reportId: number, fileUrl: string): Promise<AnalyticalReport | undefined>;
   
   createPurchase(purchase: InsertPurchase): Promise<Purchase>;
   getUserPurchases(userId: number): Promise<Purchase[]>;
@@ -131,6 +132,16 @@ export class MemStorage implements IStorage {
     return report;
   }
 
+  async updateReportFileUrl(reportId: number, fileUrl: string): Promise<AnalyticalReport | undefined> {
+    const report = this.reports.get(reportId);
+    if (!report) {
+      return undefined;
+    }
+    const updatedReport = { ...report, fileUrl };
+    this.reports.set(reportId, updatedReport);
+    return updatedReport;
+  }
+
   async createPurchase(insertPurchase: InsertPurchase): Promise<Purchase> {
     const id = this.currentPurchaseId++;
     const purchase: Purchase = {
@@ -210,6 +221,15 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return report;
+  }
+
+  async updateReportFileUrl(reportId: number, fileUrl: string): Promise<AnalyticalReport | undefined> {
+    const [report] = await db
+      .update(analyticalReports)
+      .set({ fileUrl })
+      .where(eq(analyticalReports.id, reportId))
+      .returning();
+    return report || undefined;
   }
 
   async createPurchase(insertPurchase: InsertPurchase): Promise<Purchase> {

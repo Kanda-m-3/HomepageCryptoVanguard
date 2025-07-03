@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
+import { generateReportPdfUrl } from "./storage-utils";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -132,6 +133,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error confirming purchase: " + error.message });
+    }
+  });
+
+  // Update report file URL with Object Storage URL
+  app.post("/api/reports/:id/update-file-url", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const { fileName } = req.body;
+
+      if (!fileName) {
+        return res.status(400).json({ message: "File name is required" });
+      }
+
+      // Generate Object Storage URL
+      const objectStorageUrl = generateReportPdfUrl(fileName);
+
+      // Update the report
+      const updatedReport = await storage.updateReportFileUrl(reportId, objectStorageUrl);
+
+      if (!updatedReport) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      res.json({ 
+        success: true, 
+        report: updatedReport,
+        message: `Report file URL updated to Object Storage: ${objectStorageUrl}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating report file URL: " + error.message });
     }
   });
 
