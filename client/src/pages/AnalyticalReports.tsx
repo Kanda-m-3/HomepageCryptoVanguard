@@ -42,7 +42,7 @@ export default function AnalyticalReports() {
       }
 
       // Try to fetch the PDF directly from the presigned URL
-      // If this fails due to DNS, we'll fall back to a different approach
+      // If this fails due to DNS, we'll fall back to opening in new window
       try {
         const pdfResponse = await fetch(result.downloadUrl);
         if (!pdfResponse.ok) {
@@ -61,16 +61,21 @@ export default function AnalyticalReports() {
         
         // Clean up the blob URL
         setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        
+        toast({
+          title: "ダウンロード完了",
+          description: "PDFファイルのダウンロードが完了しました。",
+        });
       } catch (fetchError) {
         // If direct fetch fails, try opening in new window as fallback
         console.warn('Direct fetch failed, trying new window:', fetchError);
         window.open(result.downloadUrl, '_blank');
+        
+        toast({
+          title: "新しいウィンドウで開きます",
+          description: "PDFファイルを新しいウィンドウで開きます。",
+        });
       }
-
-      toast({
-        title: "ダウンロード開始",
-        description: `${report.title}のサンプルレポートをダウンロード中です。`,
-      });
     } catch (error) {
       console.error('Download error:', error);
       toast({
