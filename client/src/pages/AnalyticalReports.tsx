@@ -27,60 +27,22 @@ export default function AnalyticalReports() {
     setDownloadingReports(prev => new Set(prev).add(report.id));
     
     try {
-      // Fetch the PDF content as blob from our API and create download
-      const response = await fetch(`/api/reports/${report.id}/download-sample`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Download failed');
-      }
-      
-      const result = await response.json();
-      
-      if (!result.success || !result.downloadUrl) {
-        throw new Error(result.message || 'Failed to get download URL');
-      }
+      // Simulate file download
+      const link = document.createElement('a');
+      link.href = report.fileUrl;
+      link.download = `${report.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      // Try to fetch the PDF directly from the presigned URL
-      // If this fails due to DNS, we'll fall back to opening in new window
-      try {
-        const pdfResponse = await fetch(result.downloadUrl);
-        if (!pdfResponse.ok) {
-          throw new Error('Failed to fetch PDF from storage');
-        }
-        
-        const blob = await pdfResponse.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `${report.title}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Clean up the blob URL
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-        
-        toast({
-          title: "ダウンロード完了",
-          description: "PDFファイルのダウンロードが完了しました。",
-        });
-      } catch (fetchError) {
-        // If direct fetch fails, try opening in new window as fallback
-        console.warn('Direct fetch failed, trying new window:', fetchError);
-        window.open(result.downloadUrl, '_blank');
-        
-        toast({
-          title: "新しいウィンドウで開きます",
-          description: "PDFファイルを新しいウィンドウで開きます。",
-        });
-      }
-    } catch (error) {
-      console.error('Download error:', error);
       toast({
-        title: "ダウンロードエラー", 
-        description: error instanceof Error ? error.message : "ファイルのダウンロードに失敗しました。",
+        title: "ダウンロード開始",
+        description: `${report.title}のサンプルレポートをダウンロード中です。`,
+      });
+    } catch (error) {
+      toast({
+        title: "ダウンロードエラー",
+        description: "ファイルのダウンロードに失敗しました。",
         variant: "destructive",
       });
     } finally {

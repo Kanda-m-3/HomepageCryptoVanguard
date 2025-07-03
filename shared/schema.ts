@@ -16,7 +16,7 @@ export const analyticalReports = pgTable("analytical_reports", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  objectStorageKey: text("object_storage_key").notNull(), // Changed from fileUrl to objectStorageKey
+  fileUrl: text("file_url").notNull(),
   isFreeSample: boolean("is_free_sample").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
