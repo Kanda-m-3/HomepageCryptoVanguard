@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
-import { generateDownloadUrl } from "./objectStorage";
+import { generateDownloadUrl, fileExists } from "./objectStorage";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -163,6 +163,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error confirming purchase: " + error.message });
+    }
+  });
+
+  // Free sample download endpoint
+  app.get("/api/reports/:id/download-sample", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await storage.getReport(reportId);
+      
+      if (!report || !report.isFreeSample) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Free sample report not found" 
+        });
+      }
+
+      console.log("Attempting to generate download URL for:", report.objectStorageKey);
+      
+      // Check if Object Storage credentials are available
+      if (!process.env.REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID || !process.env.REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY) {
+        console.error("Object Storage credentials not found");
+        return res.status(500).json({ 
+          success: false, 
+          message: "Object Storage credentials not configured. Please set REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID and REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY in your Replit secrets." 
+        });
+      }
+
+      // Generate presigned URL for download
+      const downloadUrl = await generateDownloadUrl(report.objectStorageKey);
+      console.log("Generated download URL successfully");
+      
+      res.json({
+        success: true,
+        downloadUrl,
+        title: report.title
+      });
+    } catch (error: any) {
+      console.error("Error generating sample download URL:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to generate download URL: " + error.message
+      });
+    }
+  });
+
+  // Debug endpoint to test Object Storage connection
+  app.get("/api/debug/object-storage", async (req, res) => {
+    try {
+      console.log("Testing Object Storage connection...");
+      
+      // Check credentials
+      const hasCredentials = !!(process.env.REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID && process.env.REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY);
+      
+      if (!hasCredentials) {
+        return res.json({
+          status: "error",
+          message: "Object Storage credentials not found",
+          credentials: false,
+          help: "Please set REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID and REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY in your Replit secrets"
+        });
+      }
+
+      // Test file existence for all reports
+      const reports = await storage.getAllReports();
+      const fileChecks = [];
+      
+      for (const report of reports) {
+        try {
+          const exists = await fileExists(report.objectStorageKey);
+          fileChecks.push({
+            reportId: report.id,
+            title: report.title,
+            objectKey: report.objectStorageKey,
+            exists
+          });
+        } catch (error: any) {
+          fileChecks.push({
+            reportId: report.id,
+            title: report.title,
+            objectKey: report.objectStorageKey,
+            exists: false,
+            error: error.message
+          });
+        }
+      }
+      
+      res.json({
+        status: "success",
+        credentials: true,
+        bucketId: "replit-objstore-a6e33adf-1d44-4b44-b510-fd863c17033b",
+        files: fileChecks
+      });
+    } catch (error: any) {
+      console.error("Object Storage debug error:", error);
+      res.json({
+        status: "error",
+        message: error.message,
+        credentials: !!(process.env.REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID && process.env.REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY)
+      });
     }
   });
 

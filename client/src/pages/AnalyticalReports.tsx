@@ -27,9 +27,17 @@ export default function AnalyticalReports() {
     setDownloadingReports(prev => new Set(prev).add(report.id));
     
     try {
-      // Simulate file download
+      // Get presigned download URL from API
+      const response = await fetch(`/api/reports/${report.id}/download-sample`);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Download failed');
+      }
+
+      // Use the presigned URL to download the file
       const link = document.createElement('a');
-      link.href = report.fileUrl;
+      link.href = result.downloadUrl;
       link.download = `${report.title}.pdf`;
       document.body.appendChild(link);
       link.click();
@@ -40,9 +48,10 @@ export default function AnalyticalReports() {
         description: `${report.title}のサンプルレポートをダウンロード中です。`,
       });
     } catch (error) {
+      console.error('Download error:', error);
       toast({
-        title: "ダウンロードエラー",
-        description: "ファイルのダウンロードに失敗しました。",
+        title: "ダウンロードエラー", 
+        description: error instanceof Error ? error.message : "ファイルのダウンロードに失敗しました。",
         variant: "destructive",
       });
     } finally {
