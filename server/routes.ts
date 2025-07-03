@@ -232,11 +232,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const report of reports) {
         try {
           const exists = await fileExists(report.objectStorageKey);
+          const testUrl = await generateDownloadUrl(report.objectStorageKey, 60); // 1 minute expiry for testing
           fileChecks.push({
             reportId: report.id,
             title: report.title,
             objectKey: report.objectStorageKey,
-            exists
+            exists,
+            testUrl: testUrl.substring(0, 100) + "..." // Truncate for display
           });
         } catch (error: any) {
           fileChecks.push({
@@ -253,6 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "success",
         credentials: true,
         bucketId: "replit-objstore-a6e33adf-1d44-4b44-b510-fd863c17033b",
+        endpoint: "https://storage.replit.com",
         files: fileChecks
       });
     } catch (error: any) {
@@ -261,6 +264,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "error",
         message: error.message,
         credentials: !!(process.env.REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID && process.env.REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY)
+      });
+    }
+  });
+
+  // Alternative download endpoint using direct HTTP redirect
+  app.get("/api/reports/:id/download-redirect", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await storage.getReport(reportId);
+      
+      if (!report || !report.isFreeSample) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Free sample report not found" 
+        });
+      }
+
+      // Generate presigned URL
+      const downloadUrl = await generateDownloadUrl(report.objectStorageKey);
+      
+      // Instead of returning JSON, redirect directly
+      res.redirect(302, downloadUrl);
+    } catch (error: any) {
+      console.error("Error in redirect download:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to generate download URL: " + error.message
       });
     }
   });

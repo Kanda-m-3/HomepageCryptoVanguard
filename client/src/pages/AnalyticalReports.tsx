@@ -27,18 +27,12 @@ export default function AnalyticalReports() {
     setDownloadingReports(prev => new Set(prev).add(report.id));
     
     try {
-      // Get presigned download URL from API
-      const response = await fetch(`/api/reports/${report.id}/download-sample`);
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.message || 'Download failed');
-      }
-
-      // Use the presigned URL to download the file
+      // Use server-side redirect to handle Object Storage download
+      // This avoids DNS resolution issues on the frontend
       const link = document.createElement('a');
-      link.href = result.downloadUrl;
+      link.href = `/api/reports/${report.id}/download-redirect`;
       link.download = `${report.title}.pdf`;
+      link.target = '_blank'; // Open in new tab for better handling
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
