@@ -27,15 +27,45 @@ export default function AnalyticalReports() {
     setDownloadingReports(prev => new Set(prev).add(report.id));
     
     try {
-      // Use server-side redirect to handle Object Storage download
-      // This avoids DNS resolution issues on the frontend
-      const link = document.createElement('a');
-      link.href = `/api/reports/${report.id}/download-redirect`;
-      link.download = `${report.title}.pdf`;
-      link.target = '_blank'; // Open in new tab for better handling
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Fetch the PDF content as blob from our API and create download
+      const response = await fetch(`/api/reports/${report.id}/download-sample`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Download failed');
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success || !result.downloadUrl) {
+        throw new Error(result.message || 'Failed to get download URL');
+      }
+
+      // Try to fetch the PDF directly from the presigned URL
+      // If this fails due to DNS, we'll fall back to a different approach
+      try {
+        const pdfResponse = await fetch(result.downloadUrl);
+        if (!pdfResponse.ok) {
+          throw new Error('Failed to fetch PDF from storage');
+        }
+        
+        const blob = await pdfResponse.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `${report.title}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the blob URL
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      } catch (fetchError) {
+        // If direct fetch fails, try opening in new window as fallback
+        console.warn('Direct fetch failed, trying new window:', fetchError);
+        window.open(result.downloadUrl, '_blank');
+      }
 
       toast({
         title: "ダウンロード開始",

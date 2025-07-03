@@ -110,3 +110,42 @@ export async function getFileMetadata(objectKey: string) {
     throw new Error(`Failed to get metadata for ${objectKey}`);
   }
 }
+
+/**
+ * Download file content from Object Storage
+ * @param objectKey - The key/path of the object to download
+ * @returns Promise<Buffer> - File content as Buffer
+ */
+export async function downloadFile(objectKey: string): Promise<Buffer> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_ID,
+      Key: objectKey,
+    });
+
+    const response = await s3Client.send(command);
+    
+    if (!response.Body) {
+      throw new Error("No file content received");
+    }
+
+    // Convert stream to buffer
+    const chunks: Uint8Array[] = [];
+    const reader = response.Body.transformToWebStream().getReader();
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return Buffer.concat(chunks);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    throw new Error(`Failed to download file: ${objectKey}`);
+  }
+}

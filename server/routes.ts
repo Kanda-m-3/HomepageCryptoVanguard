@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
-import { generateDownloadUrl, fileExists } from "./objectStorage";
+import { generateDownloadUrl, fileExists, downloadFile } from "./objectStorage";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -268,7 +268,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alternative download endpoint using direct HTTP redirect
+  // Direct PDF streaming endpoint to bypass DNS issues
+  app.get("/api/reports/:id/download-direct", async (req, res, next) => {
+    console.log("Direct download endpoint hit:", req.originalUrl);
+    
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await storage.getReport(reportId);
+      
+      if (!report || !report.isFreeSample) {
+        console.log("Report not found or not free sample:", { reportId, found: !!report, isFreeSample: report?.isFreeSample });
+        return res.status(404).json({ 
+          success: false, 
+          message: "Free sample report not found" 
+        });
+      }
+
+      console.log("Downloading file directly from Object Storage:", report.objectStorageKey);
+
+      // Check if Object Storage credentials are available
+      if (!process.env.REPLIT_OBJECT_STORAGE_ACCESS_KEY_ID || !process.env.REPLIT_OBJECT_STORAGE_SECRET_ACCESS_KEY) {
+        console.error("Object Storage credentials not found");
+        return res.status(500).json({ 
+          success: false, 
+          message: "Object Storage credentials not configured" 
+        });
+      }
+
+      // Download file content from Object Storage
+      const fileBuffer = await downloadFile(report.objectStorageKey);
+      
+      // Set appropriate headers for PDF download
+      const fileName = `${report.title.replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '_')}.pdf`;
+      
+      // Ensure we don't let this request continue to Vite middleware
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Length', fileBuffer.length);
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      // Send the file content and end the response
+      res.send(fileBuffer);
+      
+      console.log("File successfully streamed:", report.objectStorageKey, "Size:", fileBuffer.length);
+      return; // Ensure we don't call next()
+    } catch (error: any) {
+      console.error("Error in direct download:", error);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Failed to download file: " + error.message
+      });
+    }
+  });
+
+  // Alternative download endpoint using direct HTTP redirect (keep for debugging)
   app.get("/api/reports/:id/download-redirect", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
