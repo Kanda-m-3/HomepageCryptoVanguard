@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+  throw new Error("Missing required Stripe secret: STRIPE_SECRET_KEY");
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -12,20 +12,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
   // Get crypto prices from CoinGecko API
   app.get("/api/crypto-prices", async (req, res) => {
     try {
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,binancecoin,solana,dogecoin,the-open-network,shiba-inu,cardano,avalanche-2&vs_currencies=usd&include_24hr_change=true'
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,binancecoin,solana,dogecoin,the-open-network,shiba-inu,cardano,avalanche-2&vs_currencies=usd&include_24hr_change=true",
       );
       if (!response.ok) {
-        throw new Error('Failed to fetch crypto prices');
+        throw new Error("Failed to fetch crypto prices");
       }
       const data = await response.json();
       res.json(data);
     } catch (error: any) {
-      res.status(500).json({ message: "Error fetching crypto prices: " + error.message });
+      res
+        .status(500)
+        .json({ message: "Error fetching crypto prices: " + error.message });
     }
   });
 
@@ -35,7 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reports = await storage.getAllReports();
       res.json(reports);
     } catch (error: any) {
-      res.status(500).json({ message: "Error fetching reports: " + error.message });
+      res
+        .status(500)
+        .json({ message: "Error fetching reports: " + error.message });
     }
   });
 
@@ -45,7 +48,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reports = await storage.getFreeSampleReports();
       res.json(reports);
     } catch (error: any) {
-      res.status(500).json({ message: "Error fetching sample reports: " + error.message });
+      res
+        .status(500)
+        .json({ message: "Error fetching sample reports: " + error.message });
     }
   });
 
@@ -59,7 +64,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(report);
     } catch (error: any) {
-      res.status(500).json({ message: "Error fetching report: " + error.message });
+      res
+        .status(500)
+        .json({ message: "Error fetching report: " + error.message });
     }
   });
 
@@ -67,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
       const { reportId } = req.body;
-      
+
       if (!reportId) {
         return res.status(400).json({ message: "Report ID is required" });
       }
@@ -77,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      const amount = Math.round(parseFloat(report.price) * 100); // Convert to cents
+      const amount = Math.round(parseFloat(report.price)); // Debugged Not Convert to cents
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
@@ -87,12 +94,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      res.json({ 
+      res.json({
         clientSecret: paymentIntent.client_secret,
         amount: amount,
       });
     } catch (error: any) {
-      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+      res
+        .status(500)
+        .json({ message: "Error creating payment intent: " + error.message });
     }
   });
 
@@ -100,15 +109,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/confirm-purchase", async (req, res) => {
     try {
       const { paymentIntentId, reportId } = req.body;
-      
+
       if (!paymentIntentId || !reportId) {
-        return res.status(400).json({ message: "Payment intent ID and report ID are required" });
+        return res
+          .status(400)
+          .json({ message: "Payment intent ID and report ID are required" });
       }
 
       // Verify payment with Stripe
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      
-      if (paymentIntent.status !== 'succeeded') {
+      const paymentIntent =
+        await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (paymentIntent.status !== "succeeded") {
         return res.status(400).json({ message: "Payment not completed" });
       }
 
@@ -125,13 +137,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: report.price,
       });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         purchase,
         downloadUrl: report.fileUrl,
       });
     } catch (error: any) {
-      res.status(500).json({ message: "Error confirming purchase: " + error.message });
+      res
+        .status(500)
+        .json({ message: "Error confirming purchase: " + error.message });
     }
   });
 
