@@ -12,7 +12,7 @@ export default function VipCommunity() {
     },
     {
       icon: <Zap className="h-6 w-6" />,
-      title: "トレーディングシグナル",
+      title: "プレセール情報",
       description: "リアルタイムの売買シグナルと具体的なエントリー・エグジット戦略"
     },
     {
