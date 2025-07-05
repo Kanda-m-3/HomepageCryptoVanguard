@@ -95,7 +95,7 @@ export default function VipCommunity() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Discord VIPチャンネル</li>
+                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />全てのDiscord VIPチャンネル</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />リアルタイム売買シグナル</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />プレマーケット情報</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />個別ポートフォリオアドバイス</li>
