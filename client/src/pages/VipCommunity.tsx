@@ -99,7 +99,6 @@ export default function VipCommunity() {
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />専門的なレポートの定期配信</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />いつでもキャンセル可能</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Stripeによる安全な支払い</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />専門家との1対1相談</li>
                 </ul>
                 <Button className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900" disabled>
                   準備中
