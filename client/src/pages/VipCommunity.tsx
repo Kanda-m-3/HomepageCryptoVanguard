@@ -58,9 +58,7 @@ export default function VipCommunity() {
 
         {/* Benefits */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">
-            VIPメンバー限定特典
-          </h2>
+          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">VIPメンバーの特典</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {benefits.map((benefit, index) => (
               <Card key={index} className="bg-white hover:shadow-lg transition-shadow duration-300">
