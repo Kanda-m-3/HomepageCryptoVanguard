@@ -88,23 +88,7 @@ export default function VipCommunity() {
         <div className="mb-12">
           <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">VIPメンバーに登録</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="text-xl neutral-900">VIPベーシック</CardTitle>
-                <div className="text-3xl font-bold crypto-gold">¥29,800<span className="text-base neutral-600">/月</span></div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />週次市場分析レポート</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />基本的な売買シグナル</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />VIP限定ディスカッション</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />月次ウェビナー参加</li>
-                </ul>
-                <Button className="w-full bg-crypto-cyan hover:bg-blue-400 text-white" disabled>
-                  準備中
-                </Button>
-              </CardContent>
-            </Card>
+            
 
             <Card className="bg-white ring-2 ring-crypto-gold relative">
               <CardHeader>
