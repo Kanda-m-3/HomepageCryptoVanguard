@@ -86,9 +86,7 @@ export default function VipCommunity() {
 
         {/* Pricing Tiers */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">
-            メンバーシッププラン
-          </h2>
+          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">VIPメンバーに登録</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-white">
               <CardHeader>
