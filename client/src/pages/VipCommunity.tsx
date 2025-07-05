@@ -54,20 +54,7 @@ export default function VipCommunity() {
           <p className="text-xl neutral-600 max-w-2xl mx-auto leading-relaxed">限定VIPコミュニティに参加して、専門家による分析、取引シグナル、限定インサイト、専門家とのディスカッションにアクセスしましょう。</p>
         </div>
 
-        {/* Status Notice */}
-        <Card className="mb-12 bg-yellow-50 border-yellow-200">
-          <CardContent className="p-6 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <Crown className="h-6 w-6 crypto-gold mr-2" />
-              <span className="font-semibold neutral-900">VIPコミュニティ</span>
-              <Badge className="ml-2 bg-yellow-100 text-yellow-800">準備中</Badge>
-            </div>
-            <p className="neutral-600">
-              VIPコミュニティは現在準備中です。既存のCryptoVanguardMembershipページで詳細をご確認いただけます。
-              こちらは参照用のプレースホルダーページです。
-            </p>
-          </CardContent>
-        </Card>
+        
 
         {/* Benefits */}
         <div className="mb-12">
