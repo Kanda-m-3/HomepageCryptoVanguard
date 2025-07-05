@@ -18,7 +18,7 @@ export default function VipCommunity() {
     {
       icon: <Lock className="h-6 w-6" />,
       title: "ステーキング・利回り情報",
-      description: "一般には公開されない業界の内部情報と先行指標"
+      description: "各種ステーキングサービスの概要と利回り情報を配信"
     },
     {
       icon: <Users className="h-6 w-6" />,
