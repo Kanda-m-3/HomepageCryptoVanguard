@@ -17,7 +17,7 @@ export default function VipCommunity() {
     },
     {
       icon: <Lock className="h-6 w-6" />,
-      title: "独占インサイト",
+      title: "プレセール・ステーキング情報",
       description: "一般には公開されない業界の内部情報と先行指標"
     },
     {
