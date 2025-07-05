@@ -8,7 +8,7 @@ export default function VipCommunity() {
     {
       icon: <Target className="h-6 w-6" />,
       title: "エキスパート分析",
-      description: "専門アナリストによる詳細な市場分析と投資レポートを毎週配信"
+      description: "主要な暗号資産・新規プロジェクトに関する定期レポート"
     },
     {
       icon: <Zap className="h-6 w-6" />,
