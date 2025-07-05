@@ -22,7 +22,7 @@ export default function VipCommunity() {
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "専門家との直接ディスカッション",
+      title: "市場分析チャット",
       description: "暗号通貨専門家とのプライベートディスカッションルーム"
     }
   ];
