@@ -82,25 +82,7 @@ export default function VipCommunity() {
           </div>
         </div>
 
-        {/* Feature List */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle className="text-2xl neutral-900 flex items-center">
-              <TrendingUp className="h-6 w-6 crypto-gold mr-2" />
-              提供サービス一覧
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                  <span className="neutral-800">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        
 
         {/* Pricing Tiers */}
         <div className="mb-12">
