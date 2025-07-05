@@ -91,7 +91,7 @@ export default function VipCommunity() {
             <Card className="bg-white ring-2 ring-crypto-gold relative max-w-md w-full">
               <CardHeader>
                 <CardTitle className="text-xl neutral-900">VIPメンバー</CardTitle>
-                <div className="text-3xl font-bold crypto-gold">¥59,800<span className="text-base neutral-600">/月</span></div>
+                <div className="text-3xl font-bold crypto-gold">¥10,000<span className="text-base neutral-600">/月</span></div>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
