@@ -7,7 +7,7 @@ export default function VipCommunity() {
   const benefits = [
     {
       icon: <Target className="h-6 w-6" />,
-      title: "エキスパート分析",
+      title: "独占レポート",
       description: "主要な暗号資産・新規プロジェクトに関する定期レポート"
     },
     {
