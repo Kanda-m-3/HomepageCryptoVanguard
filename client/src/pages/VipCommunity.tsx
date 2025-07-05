@@ -53,10 +53,7 @@ export default function VipCommunity() {
           <h1 className="text-4xl font-bold neutral-900 mb-4">
             VIP Exclusive Community
           </h1>
-          <p className="text-xl neutral-600 max-w-2xl mx-auto leading-relaxed">
-            エキスパート分析、トレーディングシグナル、独占インサイト、
-            そして暗号通貨専門家との限定ディスカッションにアクセスできます。
-          </p>
+          <p className="text-xl neutral-600 max-w-2xl mx-auto leading-relaxed">限定VIPコミュニティに参加して、専門家による分析、取引シグナル、限定インサイト、暗号資産専門家とのディスカッションにアクセスできます。</p>
         </div>
 
         {/* Status Notice */}
