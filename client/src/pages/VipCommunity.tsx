@@ -23,7 +23,7 @@ export default function VipCommunity() {
     {
       icon: <Users className="h-6 w-6" />,
       title: "市場分析チャット",
-      description: "暗号通貨専門家とのプライベートディスカッションルーム"
+      description: "主要な暗号資産の市場分析を配信、VIPメンバー間で意見交換"
     }
   ];
 
