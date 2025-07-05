@@ -87,10 +87,8 @@ export default function VipCommunity() {
         {/* Pricing Tiers */}
         <div className="mb-12">
           <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">VIPメンバーに登録</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-
-            <Card className="bg-white ring-2 ring-crypto-gold relative">
+          <div className="flex justify-center">
+            <Card className="bg-white ring-2 ring-crypto-gold relative max-w-md w-full">
               <CardHeader>
                 <CardTitle className="text-xl neutral-900">VIPプレミアム</CardTitle>
                 <div className="text-3xl font-bold crypto-gold">¥59,800<span className="text-base neutral-600">/月</span></div>
