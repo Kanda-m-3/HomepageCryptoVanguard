@@ -59,19 +59,27 @@ export default function VipCommunity() {
 
   const handleDiscordLogin = async () => {
     try {
-      // Use the alternative redirect method that works like the debug test
-      window.location.href = '/api/auth/discord?method=location';
+      // Get the Discord OAuth URL and navigate directly (exactly like debug method)
+      const response = await fetch('/api/auth/discord/config');
+      const config = await response.json();
+      
+      // Use the exact same method as the working debug test
+      const discordUrl = config.fullOAuthUrl;
+      console.log('Navigating to Discord URL:', discordUrl);
+      
+      // Direct navigation without any server redirect
+      window.location.assign(discordUrl);
     } catch (error) {
       console.error('Discord authentication error:', error);
       toast({
-        title: "認証エラー",
+        title: "認証エラー", 
         description: "Discord認証でエラーが発生しました。しばらく後にもう一度お試しください。",
         variant: "destructive",
       });
     }
   };
 
-  // Debug function to test Discord configuration
+  // Debug function to test Discord configuration  
   const handleTestDiscordConfig = async () => {
     try {
       const response = await fetch('/api/auth/discord/config');
@@ -88,6 +96,19 @@ export default function VipCommunity() {
       });
     } catch (error) {
       console.error('Config test error:', error);
+    }
+  };
+
+  // Test function to simulate what happens in working debug flow
+  const handleTestSameWindow = async () => {
+    try {
+      const response = await fetch('/api/auth/discord/config');
+      const config = await response.json();
+      
+      // Use assign instead of href (different navigation method)
+      window.location.assign(config.fullOAuthUrl);
+    } catch (error) {
+      console.error('Same window test error:', error);
     }
   };
 
@@ -142,14 +163,25 @@ export default function VipCommunity() {
                     Discordで認証
                   </Button>
                   
-                  <Button 
-                    onClick={handleTestDiscordConfig}
-                    variant="outline"
-                    className="w-full border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                    size="sm"
-                  >
-                    Discord設定をテスト (デバッグ用)
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleTestDiscordConfig}
+                      variant="outline"
+                      className="w-full border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                      size="sm"
+                    >
+                      Discord設定をテスト (デバッグ用)
+                    </Button>
+                    
+                    <Button 
+                      onClick={handleTestSameWindow}
+                      variant="outline"
+                      className="w-full border-yellow-600 text-yellow-300 hover:bg-yellow-700"
+                      size="sm"
+                    >
+                      同じウィンドウでテスト
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
