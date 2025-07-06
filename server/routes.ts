@@ -15,7 +15,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // Discord OAuth2 configuration
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const DISCORD_GUILD_ID = "1383003178584510524"; // TODO: Update with correct Discord server ID
+const DISCORD_GUILD_ID = "1357437337537220719"; // Crypto Vanguard Discord server ID
 // Determine the correct base URL for redirects
 const getBaseUrl = () => {
   if (process.env.REPLIT_DOMAINS) {
@@ -104,9 +104,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Is server member check:', isServerMember);
 
-      // For now, let's assume the user is a member if they have guilds
-      // TODO: Update DISCORD_GUILD_ID with the correct server ID
-      const actualIsServerMember = guilds.length > 0 || isServerMember;
+      // Check if user is a member of the Crypto Vanguard server
+      const actualIsServerMember = isServerMember;
+      
+      if (!actualIsServerMember) {
+        console.log('User is not a member of Crypto Vanguard server');
+        return res.redirect('/vip-community?error=not_member');
+      }
 
       // Check if user has VIP role (this would require bot token to get guild member info)
       // For now, we'll set it to false and implement VIP checking later
@@ -127,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user in session
       req.session.userId = user.id;
       
-      console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember);
+      console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
       
       // Redirect to VIP community page
       res.redirect('/vip-community?auth=success');

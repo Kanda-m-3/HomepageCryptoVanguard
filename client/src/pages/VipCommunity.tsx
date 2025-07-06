@@ -60,7 +60,8 @@ export default function VipCommunity() {
 
   const handleDiscordLogin = () => {
     // Use direct navigation instead of popup
-    window.location.href = '/api/auth/discord';
+    /* window.location.href = '/api/auth/discord';*/
+    window.open('/api/auth/discord', '_blank', 'noopener');
   };
 
   const handleBackFromJoinFlow = () => {
