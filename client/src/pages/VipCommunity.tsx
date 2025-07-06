@@ -59,16 +59,13 @@ export default function VipCommunity() {
 
   const handleDiscordLogin = async () => {
     try {
-      // Get the Discord OAuth URL and navigate directly (exactly like debug method)
-      const response = await fetch('/api/auth/discord/config');
-      const config = await response.json();
+      // Use the exact same method as the working new tab test
+      const discordUrl = 'https://discord.com/oauth2/authorize?client_id=1383003178584510524&response_type=code&redirect_uri=https%3A%2F%2F8a9eeb30-a0eb-4aba-a553-f6fc07f95202-00-33wq7j97wdxsb.janeway.replit.dev%2Fapi%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds+email';
       
-      // Use the exact same method as the working debug test
-      const discordUrl = config.fullOAuthUrl;
       console.log('Navigating to Discord URL:', discordUrl);
       
-      // Direct navigation without any server redirect
-      window.location.assign(discordUrl);
+      // Use same window navigation that works in new tab
+      window.location.href = discordUrl;
     } catch (error) {
       console.error('Discord authentication error:', error);
       toast({
@@ -79,38 +76,7 @@ export default function VipCommunity() {
     }
   };
 
-  // Debug function to test Discord configuration  
-  const handleTestDiscordConfig = async () => {
-    try {
-      const response = await fetch('/api/auth/discord/config');
-      const config = await response.json();
-      console.log('Discord Config:', config);
-      
-      // Try to open Discord OAuth URL in a new tab for debugging
-      const discordUrl = config.fullOAuthUrl;
-      window.open(discordUrl, '_blank');
-      
-      toast({
-        title: "デバッグ情報",
-        description: "Discord設定をコンソールで確認してください。新しいタブでOAuth URLを開きました。",
-      });
-    } catch (error) {
-      console.error('Config test error:', error);
-    }
-  };
 
-  // Test function to simulate what happens in working debug flow
-  const handleTestSameWindow = async () => {
-    try {
-      const response = await fetch('/api/auth/discord/config');
-      const config = await response.json();
-      
-      // Use assign instead of href (different navigation method)
-      window.location.assign(config.fullOAuthUrl);
-    } catch (error) {
-      console.error('Same window test error:', error);
-    }
-  };
 
   const handleBackFromJoinFlow = () => {
     setShowJoinFlow(false);
@@ -163,25 +129,7 @@ export default function VipCommunity() {
                     Discordで認証
                   </Button>
                   
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={handleTestDiscordConfig}
-                      variant="outline"
-                      className="w-full border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                      size="sm"
-                    >
-                      Discord設定をテスト (デバッグ用)
-                    </Button>
-                    
-                    <Button 
-                      onClick={() => window.open('https://discord.com/oauth2/authorize?client_id=1383003178584510524&response_type=code&redirect_uri=https%3A%2F%2F8a9eeb30-a0eb-4aba-a553-f6fc07f95202-00-33wq7j97wdxsb.janeway.replit.dev%2Fapi%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds+email', '_blank')}
-                      variant="outline"
-                      className="w-full border-green-600 text-green-300 hover:bg-green-700"
-                      size="sm"
-                    >
-                      新しいタブでテスト
-                    </Button>
-                  </div>
+
                 </div>
               </CardContent>
             </Card>
