@@ -54,3 +54,22 @@ Connection refused error when accessing Discord OAuth URL, even with correct red
    - email  
    - guilds
 3. Save changes
+
+### Step 5: Check Bot/Application Settings (CRITICAL)
+1. Go to **Bot** tab in Discord Developer Portal
+2. Check if "Public Bot" is ENABLED (must be ON for OAuth2)
+3. If disabled, enable it and save
+4. Go to **General Information** tab
+5. Verify application is set to "Bot" type
+
+### Step 6: Test Minimal OAuth2 Flow
+Since even Discord's generated URL fails, the issue is likely:
+- Bot/Application is not set to "Public Bot"
+- Application is in development/restricted mode
+- Discord region/network restrictions
+
+## NEW DIAGNOSIS
+The fact that Discord's own generated URL fails indicates this is NOT a Replit/code issue but a Discord application configuration problem. Most likely causes:
+1. **Public Bot disabled** - OAuth2 requires public bot to be enabled
+2. **Application type incorrect** - Must be configured as a Bot application
+3. **Discord application in restricted/development mode**
