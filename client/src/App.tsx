@@ -12,6 +12,8 @@ import AnalyticalReports from "@/pages/AnalyticalReports";
 import Checkout from "@/pages/Checkout";
 import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import OAuthSetup from "@/pages/OAuthSetup";
+import CrossEnvironmentDemo from "@/pages/CrossEnvironmentDemo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/checkout/:reportId" component={Checkout} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/oauth-setup" component={OAuthSetup} />
+      <Route path="/cross-env-demo" component={CrossEnvironmentDemo} />
       <Route component={NotFound} />
     </Switch>
   );

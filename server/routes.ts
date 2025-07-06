@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { insertDiscordUserSchema } from "@shared/schema";
+import CrossEnvironmentOAuthManager from "./oauth-config";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("Missing required Stripe secret: STRIPE_SECRET_KEY");
@@ -16,24 +17,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_GUILD_ID = "1357437337537220719"; // Crypto Vanguard Discord server ID
-// Determine the correct base URL for redirects
-const getBaseUrl = (req?: any) => {
-  // In production deployment, use the request host
-  if (req && req.get('host')) {
-    const protocol = req.get('x-forwarded-proto') || (req.get('host').includes('localhost') ? 'http' : 'https');
-    return `${protocol}://${req.get('host')}`;
-  }
-  
-  // Fallback to environment variables for development
-  if (process.env.REPLIT_DOMAINS) {
-    return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
-  }
-  
-  return 'http://localhost:5000';
+// Use the cross-environment OAuth manager for redirect URIs
+const getDiscordRedirectUri = (req: any) => {
+  const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
+  return environment.redirectUri;
 };
-
-// Dynamic redirect URI based on request
-const getDiscordRedirectUri = (req: any) => `${getBaseUrl(req)}/api/auth/discord/callback`;
 
 if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
   throw new Error("Missing Discord OAuth2 credentials");
@@ -42,23 +30,43 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Debug endpoint to check Discord OAuth configuration
   app.get("/api/auth/discord/config", (req, res) => {
+    const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
     res.json({
       clientId: DISCORD_CLIENT_ID,
-      redirectUri: getDiscordRedirectUri(req),
-      baseUrl: getBaseUrl(req),
-      host: req.get('host'),
-      protocol: req.get('x-forwarded-proto'),
+      currentEnvironment: environment,
+      allPossibleRedirectUris: CrossEnvironmentOAuthManager.generateAllRedirectUris(),
+      setupInstructions: CrossEnvironmentOAuthManager.getDiscordConfigInstructions(DISCORD_CLIENT_ID || ''),
       replit_domains: process.env.REPLIT_DOMAINS
+    });
+  });
+
+  // New endpoint to generate OAuth setup instructions
+  app.get("/api/auth/discord/setup-guide", (req, res) => {
+    res.json({
+      instructions: CrossEnvironmentOAuthManager.getDiscordConfigInstructions(DISCORD_CLIENT_ID || ''),
+      allRedirectUris: CrossEnvironmentOAuthManager.generateAllRedirectUris(),
+      currentEnvironment: CrossEnvironmentOAuthManager.detectEnvironment(req)
     });
   });
 
   // Discord OAuth2 authentication initiation
   app.get("/api/auth/discord", (req, res) => {
-    const redirectUri = getDiscordRedirectUri(req);
+    const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
+    const redirectUri = environment.redirectUri;
+    
+    // Validate redirect URI
+    if (!CrossEnvironmentOAuthManager.validateRedirectUri(redirectUri, req)) {
+      console.error('Invalid redirect URI detected:', redirectUri);
+      return res.status(400).json({ error: 'Invalid redirect URI configuration' });
+    }
+    
     const scopes = ['identify', 'guilds', 'email'].join('%20');
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
+    
     console.log('Discord OAuth URL:', discordAuthUrl);
+    console.log('Environment:', environment.name);
     console.log('Using redirect URI:', redirectUri);
+    
     res.redirect(discordAuthUrl);
   });
 

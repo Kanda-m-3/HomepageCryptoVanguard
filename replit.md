@@ -38,7 +38,11 @@ Three main entities:
 - **Purchases**: Transaction records linking users to purchased content
 
 ### Authentication Strategy
-The application is prepared for user authentication with Stripe customer integration, using a full PostgreSQL database implementation through Drizzle ORM for persistent data storage.
+The application features a robust Discord OAuth2 authentication system with:
+- **Cross-Environment Support**: Automatic redirect URI generation for development, preview, and production environments
+- **Session Management**: Express session middleware with PostgreSQL session storage
+- **Discord Integration**: Server membership verification and user data synchronization
+- **Multi-Environment OAuth**: Dynamic redirect URI detection and validation across Replit environments
 
 ## Data Flow
 
@@ -53,8 +57,23 @@ The application is prepared for user authentication with Stripe customer integra
 - **CoinGecko API**: Real-time cryptocurrency price data
 - **Stripe**: Payment processing and subscription management
 - **Neon Database**: PostgreSQL hosting (configured for Drizzle)
-- **Discord**: Community platform integration
-- **Replit**: Development and deployment environment
+- **Discord OAuth2**: Community platform integration with cross-environment support
+- **Replit**: Development and deployment environment with auto-scaling capabilities
+
+## Cross-Environment OAuth2 System
+
+### Features Implemented
+- **Environment Auto-Detection**: Automatic detection of development, preview, and production environments
+- **Dynamic Redirect URI Generation**: Context-aware OAuth redirect URI creation
+- **Multi-Environment Validation**: Request-based redirect URI validation and security checks
+- **Setup Guide Generation**: Automated Discord Developer Portal configuration instructions
+- **Debug Tools**: Developer endpoints for OAuth configuration testing and validation
+
+### API Endpoints
+- `GET /api/auth/discord/config` - Current environment OAuth configuration
+- `GET /api/auth/discord/setup-guide` - Complete setup instructions for Discord Developer Portal
+- `GET /oauth-setup` - Interactive setup guide UI
+- `GET /cross-env-demo` - Cross-environment demonstration and testing interface
 
 ## Deployment Strategy
 
@@ -69,6 +88,8 @@ The deployment includes PostgreSQL module for database connectivity and is optim
 ## Changelog
 
 ## Recent Changes
+- January 7, 2025: ✅ Implemented Cross-Environment OAuth2 Redirect URI Generator
+- January 7, 2025: ✅ Created comprehensive OAuth setup guide and demo pages
 - January 7, 2025: ✅ Successfully completed Discord OAuth2 authentication system with full session management
 - January 7, 2025: Fixed Discord OAuth2 redirect URI configuration for Replit environment  
 - January 7, 2025: Implemented Express session middleware for persistent user authentication
