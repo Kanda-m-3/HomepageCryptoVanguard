@@ -34,13 +34,14 @@ export default function VipCommunity() {
       });
       setIsAuthenticated(false);
     } else if (auth === 'success') {
-      setIsAuthenticated(true);
+      // Clean up URL parameters first
+      window.history.replaceState({}, '', '/vip-community');
+      // Then check authentication status
+      checkAuthenticationStatus();
       toast({
         title: "認証成功",
         description: "Discord認証が完了しました。VIPコミュニティへようこそ！",
       });
-      // Clean up URL parameters
-      window.history.replaceState({}, '', '/vip-community');
     } else {
       // Check authentication status
       checkAuthenticationStatus();
@@ -58,8 +59,8 @@ export default function VipCommunity() {
   };
 
   const handleDiscordLogin = () => {
-   /* window.location.href = '/api/auth/discord';*/
-    window.open('/api/auth/discord', '_blank', 'noopener')
+    // Use direct navigation instead of popup
+    window.location.href = '/api/auth/discord';
   };
 
   const handleBackFromJoinFlow = () => {

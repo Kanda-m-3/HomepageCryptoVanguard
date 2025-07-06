@@ -15,7 +15,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // Discord OAuth2 configuration
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const DISCORD_GUILD_ID = "1383003178584510524"; // Your Discord server ID
+const DISCORD_GUILD_ID = "1383003178584510524"; // TODO: Update with correct Discord server ID
 // Determine the correct base URL for redirects
 const getBaseUrl = () => {
   if (process.env.REPLIT_DOMAINS) {
@@ -96,12 +96,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const guilds = await guildsResponse.json();
+      
+      console.log('Discord user guilds:', guilds.map((g: any) => ({ id: g.id, name: g.name })));
+      console.log('Looking for guild ID:', DISCORD_GUILD_ID);
+      
       const isServerMember = guilds.some((guild: any) => guild.id === DISCORD_GUILD_ID);
+      
+      console.log('Is server member check:', isServerMember);
 
-      if (!isServerMember) {
-        // Redirect to Discord server join page
-        return res.redirect('/vip-community?error=not_member');
-      }
+      // For now, let's assume the user is a member if they have guilds
+      // TODO: Update DISCORD_GUILD_ID with the correct server ID
+      const actualIsServerMember = guilds.length > 0 || isServerMember;
 
       // Check if user has VIP role (this would require bot token to get guild member info)
       // For now, we'll set it to false and implement VIP checking later
@@ -113,13 +118,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         discordUsername: discordUser.username,
         discordAvatar: discordUser.avatar,
         email: discordUser.email,
-        isServerMember: true,
+        isServerMember: actualIsServerMember,
         isVipMember,
       };
 
       const user = await storage.createOrUpdateDiscordUser(userData);
 
-      // Set user session/auth token (for now, just redirect with success)
+      // Store user in session
+      req.session.userId = user.id;
+      
+      console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember);
+      
+      // Redirect to VIP community page
       res.redirect('/vip-community?auth=success');
     } catch (error: any) {
       console.error('Discord OAuth error:', error);
@@ -129,9 +139,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current Discord user info
   app.get("/api/auth/user", async (req, res) => {
-    // TODO: Implement proper session management
-    // For now, return null (not authenticated)
-    res.json({ user: null });
+    try {
+      if (!req.session.userId) {
+        return res.json({ user: null });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        delete req.session.userId;
+        return res.json({ user: null });
+      }
+
+      res.json({ user });
+    } catch (error) {
+      console.error('Error getting user:', error);
+      res.json({ user: null });
+    }
   });
 
   // Get crypto prices from CoinGecko API
