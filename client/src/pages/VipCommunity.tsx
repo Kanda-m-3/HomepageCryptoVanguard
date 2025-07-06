@@ -57,26 +57,15 @@ export default function VipCommunity() {
     }
   };
 
-  const handleDiscordLogin = async () => {
-    try {
-      // Use the exact same method as the working new tab test
-      const discordUrl = 'https://discord.com/oauth2/authorize?client_id=1383003178584510524&response_type=code&redirect_uri=https%3A%2F%2F8a9eeb30-a0eb-4aba-a553-f6fc07f95202-00-33wq7j97wdxsb.janeway.replit.dev%2Fapi%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds+email';
-      
-      console.log('Navigating to Discord URL:', discordUrl);
-      
-      // Use same window navigation that works in new tab
-      window.location.href = discordUrl;
-    } catch (error) {
-      console.error('Discord authentication error:', error);
-      toast({
-        title: "認証エラー", 
-        description: "Discord認証でエラーが発生しました。しばらく後にもう一度お試しください。",
-        variant: "destructive",
-      });
-    }
-  };
+  /* ===============
+   * Replit の iframe を抜けて新しいタブで自前 API へ遷移
+   * バックエンド側 /api/auth/discord が 302 で
+   * Discord OAuth URL へリダイレクトしてくれます。
+   * =============== */
 
-
+  const handleDiscordLogin = () => {
+      window.open("/api/auth/discord", "_blank", "noopener");
+    };
 
   const handleBackFromJoinFlow = () => {
     setShowJoinFlow(false);

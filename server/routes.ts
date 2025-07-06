@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Redirect URI:', DISCORD_REDIRECT_URI);
       console.log('Request headers:', req.headers);
       
-      // Try different redirect methods
+      /*/ Try different redirect methods
       if (req.query.method === 'location') {
         // Send HTML that will redirect via JavaScript (like debug method)
         res.send(`<!DOCTYPE html>
@@ -89,8 +89,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </body>
 </html>`);
       } else {
-        res.redirect(discordAuthUrl);
-      }
+*/
+      return res.redirect(discordAuthUrl);
+/*      } */
     } catch (error) {
       console.error('Discord OAuth initiation error:', error);
       res.status(500).json({ error: 'Discord OAuth configuration error' });
