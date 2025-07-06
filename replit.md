@@ -69,6 +69,10 @@ The deployment includes PostgreSQL module for database connectivity and is optim
 ## Changelog
 
 ## Recent Changes
+- January 7, 2025: Implemented Discord OAuth2 authentication system for VIP Community access
+- January 7, 2025: Added Discord user fields to database schema (discord_id, discord_username, discord_avatar, is_server_member, is_vip_member)
+- January 7, 2025: Created Discord server join flow for non-members with invite code EP4dss5rB9
+- January 7, 2025: Updated VIP membership benefits to focus on Discord channels, reports, and security features
 - July 1, 2025: Enhanced crypto price ticker with all 10 tokens and smooth endless scrolling animation
 - July 1, 2025: Updated Discord server invitation URL to https://discord.gg/EP4dss5rB9
 - July 1, 2025: Created complete Terms of Service page with Japanese legal content

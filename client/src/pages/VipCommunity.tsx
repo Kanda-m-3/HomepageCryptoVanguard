@@ -1,9 +1,136 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Target, TrendingUp, Users, Zap, Lock, CheckCircle, ArrowRight } from "lucide-react";
+import { Crown, Target, TrendingUp, Users, Zap, Lock, CheckCircle, ArrowRight, AlertCircle } from "lucide-react";
+import { useLocation } from "wouter";
+import DiscordJoinFlow from "@/components/DiscordJoinFlow";
+import { useToast } from "@/hooks/use-toast";
 
 export default function VipCommunity() {
+  const [location] = useLocation();
+  const [showJoinFlow, setShowJoinFlow] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Check URL parameters for authentication state
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const auth = urlParams.get('auth');
+
+    if (error === 'not_member') {
+      setShowJoinFlow(true);
+      toast({
+        title: "Discord サーバー参加が必要",
+        description: "VIPコミュニティにアクセスするには、まずDiscordサーバーに参加してください。",
+        variant: "destructive",
+      });
+    } else if (error === 'auth_failed') {
+      toast({
+        title: "認証エラー",
+        description: "Discord認証に失敗しました。もう一度お試しください。",
+        variant: "destructive",
+      });
+      setIsAuthenticated(false);
+    } else if (auth === 'success') {
+      setIsAuthenticated(true);
+      toast({
+        title: "認証成功",
+        description: "Discord認証が完了しました。VIPコミュニティへようこそ！",
+      });
+      // Clean up URL parameters
+      window.history.replaceState({}, '', '/vip-community');
+    } else {
+      // Check authentication status
+      checkAuthenticationStatus();
+    }
+  }, [location, toast]);
+
+  const checkAuthenticationStatus = async () => {
+    try {
+      const response = await fetch('/api/auth/user');
+      const data = await response.json();
+      setIsAuthenticated(!!data.user);
+    } catch (error) {
+      setIsAuthenticated(false);
+    }
+  };
+
+  const handleDiscordLogin = () => {
+    window.location.href = '/api/auth/discord';
+  };
+
+  const handleBackFromJoinFlow = () => {
+    setShowJoinFlow(false);
+    setIsAuthenticated(false);
+  };
+
+  // Show Discord join flow if user is not a server member
+  if (showJoinFlow) {
+    return <DiscordJoinFlow onBack={handleBackFromJoinFlow} />;
+  }
+
+  // Show authentication prompt if not authenticated
+  if (isAuthenticated === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <Card className="bg-neutral-800/50 backdrop-blur border-neutral-700">
+              <CardHeader>
+                <div className="mx-auto mb-4 w-16 h-16 bg-crypto-gold/20 rounded-full flex items-center justify-center">
+                  <Crown className="h-8 w-8 text-crypto-gold" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-crypto-gold mb-2">
+                  VIPコミュニティ
+                </CardTitle>
+                <p className="text-neutral-300">
+                  VIPコミュニティにアクセスするには、Discordアカウントでの認証が必要です
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-neutral-700/50 p-4 rounded-lg border border-neutral-600">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-500 mb-1">認証について</h3>
+                      <p className="text-sm text-neutral-300">
+                        VIPコミュニティへのアクセスには、Crypto Vanguard Discordサーバーのメンバーシップが必要です。
+                        認証により、サーバー参加状況とVIPロールを確認します。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleDiscordLogin}
+                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
+                  size="lg"
+                >
+                  Discordで認証
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-crypto-gold border-t-transparent rounded-full mx-auto" />
+            <p className="mt-4 text-neutral-300">認証状況を確認中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const benefits = [
     {
       icon: <Target className="h-6 w-6" />,

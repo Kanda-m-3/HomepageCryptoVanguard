@@ -1,11 +1,13 @@
-import { users, analyticalReports, purchases, type User, type InsertUser, type AnalyticalReport, type InsertAnalyticalReport, type Purchase, type InsertPurchase } from "@shared/schema";
+import { users, analyticalReports, purchases, type User, type InsertUser, type InsertDiscordUser, type AnalyticalReport, type InsertAnalyticalReport, type Purchase, type InsertPurchase } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByDiscordId(discordId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User>;
   updateStripeCustomerId(userId: number, customerId: string): Promise<User>;
   
   getAllReports(): Promise<AnalyticalReport[]>;
@@ -84,6 +86,12 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByDiscordId(discordId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.discordId === discordId,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = { 
@@ -92,9 +100,54 @@ export class MemStorage implements IStorage {
       email: insertUser.email ?? null,
       stripeCustomerId: null,
       stripeSubscriptionId: null,
+      discordId: null,
+      discordUsername: null,
+      discordAvatar: null,
+      isServerMember: false,
+      isVipMember: false,
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User> {
+    if (!discordUser.discordId) {
+      throw new Error("Discord ID is required");
+    }
+
+    const existingUser = await this.getUserByDiscordId(discordUser.discordId);
+    
+    if (existingUser) {
+      // Update existing user
+      const updatedUser: User = {
+        ...existingUser,
+        discordUsername: discordUser.discordUsername || existingUser.discordUsername,
+        discordAvatar: discordUser.discordAvatar || existingUser.discordAvatar,
+        email: discordUser.email || existingUser.email,
+        isServerMember: discordUser.isServerMember ?? existingUser.isServerMember,
+        isVipMember: discordUser.isVipMember ?? existingUser.isVipMember,
+      };
+      this.users.set(existingUser.id, updatedUser);
+      return updatedUser;
+    } else {
+      // Create new user
+      const id = this.currentUserId++;
+      const user: User = {
+        id,
+        username: discordUser.discordUsername || 'discord_user',
+        password: '', // Discord users don't need passwords
+        email: discordUser.email ?? null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        discordId: discordUser.discordId,
+        discordUsername: discordUser.discordUsername ?? null,
+        discordAvatar: discordUser.discordAvatar ?? null,
+        isServerMember: discordUser.isServerMember ?? false,
+        isVipMember: discordUser.isVipMember ?? false,
+      };
+      this.users.set(id, user);
+      return user;
+    }
   }
 
   async updateStripeCustomerId(userId: number, customerId: string): Promise<User> {
@@ -168,6 +221,11 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserByDiscordId(discordId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.discordId, discordId));
+    return user || undefined;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -177,6 +235,46 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User> {
+    if (!discordUser.discordId) {
+      throw new Error("Discord ID is required");
+    }
+
+    const existingUser = await this.getUserByDiscordId(discordUser.discordId);
+    
+    if (existingUser) {
+      // Update existing user
+      const [user] = await db
+        .update(users)
+        .set({
+          discordUsername: discordUser.discordUsername,
+          discordAvatar: discordUser.discordAvatar,
+          email: discordUser.email || existingUser.email,
+          isServerMember: discordUser.isServerMember,
+          isVipMember: discordUser.isVipMember,
+        })
+        .where(eq(users.discordId, discordUser.discordId))
+        .returning();
+      return user;
+    } else {
+      // Create new user
+      const [user] = await db
+        .insert(users)
+        .values({
+          username: discordUser.discordUsername || 'discord_user',
+          password: '', // Discord users don't need passwords
+          email: discordUser.email,
+          discordId: discordUser.discordId,
+          discordUsername: discordUser.discordUsername,
+          discordAvatar: discordUser.discordAvatar,
+          isServerMember: discordUser.isServerMember,
+          isVipMember: discordUser.isVipMember,
+        })
+        .returning();
+      return user;
+    }
   }
 
   async updateStripeCustomerId(userId: number, customerId: string): Promise<User> {
