@@ -57,10 +57,10 @@ export default function VipCommunity() {
     }
   };
 
-  const handleDiscordLogin = () => {
-    // Add error handling for Discord authentication
+  const handleDiscordLogin = async () => {
     try {
-      window.location.href = '/api/auth/discord';
+      // Use the alternative redirect method that works like the debug test
+      window.location.href = '/api/auth/discord?method=location';
     } catch (error) {
       console.error('Discord authentication error:', error);
       toast({

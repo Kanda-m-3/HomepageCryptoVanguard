@@ -69,14 +69,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const scopes = ['identify', 'guilds', 'email'].join('%20');
-      const state = Math.random().toString(36).substring(7); // Simple state for CSRF protection
+      const state = Math.random().toString(36).substring(7);
       const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${state}`;
       
       console.log('Discord OAuth URL:', discordAuthUrl);
       console.log('Client ID:', DISCORD_CLIENT_ID);
       console.log('Redirect URI:', DISCORD_REDIRECT_URI);
+      console.log('Request headers:', req.headers);
       
-      res.redirect(discordAuthUrl);
+      // Try different redirect methods
+      if (req.query.method === 'location') {
+        // Send HTML that will redirect via JavaScript (like debug method)
+        res.send(`<!DOCTYPE html>
+<html>
+<head><title>Redirecting to Discord...</title></head>
+<body>
+<p>Redirecting to Discord...</p>
+<script>window.location.href = "${discordAuthUrl}";</script>
+</body>
+</html>`);
+      } else {
+        res.redirect(discordAuthUrl);
+      }
     } catch (error) {
       console.error('Discord OAuth initiation error:', error);
       res.status(500).json({ error: 'Discord OAuth configuration error' });
