@@ -58,7 +58,37 @@ export default function VipCommunity() {
   };
 
   const handleDiscordLogin = () => {
-    window.location.href = '/api/auth/discord';
+    // Add error handling for Discord authentication
+    try {
+      window.location.href = '/api/auth/discord';
+    } catch (error) {
+      console.error('Discord authentication error:', error);
+      toast({
+        title: "認証エラー",
+        description: "Discord認証でエラーが発生しました。しばらく後にもう一度お試しください。",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Debug function to test Discord configuration
+  const handleTestDiscordConfig = async () => {
+    try {
+      const response = await fetch('/api/auth/discord/config');
+      const config = await response.json();
+      console.log('Discord Config:', config);
+      
+      // Try to open Discord OAuth URL in a new tab for debugging
+      const discordUrl = config.fullOAuthUrl;
+      window.open(discordUrl, '_blank');
+      
+      toast({
+        title: "デバッグ情報",
+        description: "Discord設定をコンソールで確認してください。新しいタブでOAuth URLを開きました。",
+      });
+    } catch (error) {
+      console.error('Config test error:', error);
+    }
   };
 
   const handleBackFromJoinFlow = () => {
@@ -103,13 +133,24 @@ export default function VipCommunity() {
                   </div>
                 </div>
                 
-                <Button 
-                  onClick={handleDiscordLogin}
-                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
-                  size="lg"
-                >
-                  Discordで認証
-                </Button>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={handleDiscordLogin}
+                    className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
+                    size="lg"
+                  >
+                    Discordで認証
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleTestDiscordConfig}
+                    variant="outline"
+                    className="w-full border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                    size="sm"
+                  >
+                    Discord設定をテスト (デバッグ用)
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

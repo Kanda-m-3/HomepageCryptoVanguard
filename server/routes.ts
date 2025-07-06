@@ -37,16 +37,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       clientId: DISCORD_CLIENT_ID,
       redirectUri: DISCORD_REDIRECT_URI,
       baseUrl: getBaseUrl(),
-      replit_domains: process.env.REPLIT_DOMAINS
+      replit_domains: process.env.REPLIT_DOMAINS,
+      hasClientSecret: !!DISCORD_CLIENT_SECRET,
+      fullOAuthUrl: `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20email`
+    });
+  });
+
+  // Test endpoint for debugging Discord application
+  app.get("/api/auth/discord/test", (req, res) => {
+    res.json({
+      message: "This endpoint tests if the Discord application is properly configured",
+      instructions: [
+        "1. Go to https://discord.com/developers/applications",
+        "2. Select your Crypto Vanguard application",
+        "3. In the OAuth2 section, make sure:",
+        "   - Redirect URIs includes: " + DISCORD_REDIRECT_URI,
+        "   - Client Secret is properly set",
+        "   - Application has 'bot' and 'applications.commands' scopes if needed",
+        "4. Try the OAuth URL manually:",
+        `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20email`
+      ]
     });
   });
 
   // Discord OAuth2 authentication initiation
   app.get("/api/auth/discord", (req, res) => {
-    const scopes = ['identify', 'guilds', 'email'].join('%20');
-    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}`;
-    console.log('Discord OAuth URL:', discordAuthUrl);
-    res.redirect(discordAuthUrl);
+    try {
+      // Validate Discord configuration
+      if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+        throw new Error('Discord OAuth2 credentials not configured');
+      }
+
+      const scopes = ['identify', 'guilds', 'email'].join('%20');
+      const state = Math.random().toString(36).substring(7); // Simple state for CSRF protection
+      const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${state}`;
+      
+      console.log('Discord OAuth URL:', discordAuthUrl);
+      console.log('Client ID:', DISCORD_CLIENT_ID);
+      console.log('Redirect URI:', DISCORD_REDIRECT_URI);
+      
+      res.redirect(discordAuthUrl);
+    } catch (error) {
+      console.error('Discord OAuth initiation error:', error);
+      res.status(500).json({ error: 'Discord OAuth configuration error' });
+    }
   });
 
   // Discord OAuth2 callback
