@@ -57,15 +57,9 @@ export default function VipCommunity() {
     }
   };
 
-  /* ===============
-   * Replit の iframe を抜けて新しいタブで自前 API へ遷移
-   * バックエンド側 /api/auth/discord が 302 で
-   * Discord OAuth URL へリダイレクトしてくれます。
-   * =============== */
-
   const handleDiscordLogin = () => {
-      window.open("/api/auth/discord", "_blank", "noopener");
-    };
+    window.location.href = '/api/auth/discord';
+  };
 
   const handleBackFromJoinFlow = () => {
     setShowJoinFlow(false);
@@ -109,17 +103,13 @@ export default function VipCommunity() {
                   </div>
                 </div>
                 
-                <div className="space-y-3">
-                  <Button 
-                    onClick={handleDiscordLogin}
-                    className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
-                    size="lg"
-                  >
-                    Discordで認証
-                  </Button>
-                  
-
-                </div>
+                <Button 
+                  onClick={handleDiscordLogin}
+                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
+                  size="lg"
+                >
+                  Discordで認証
+                </Button>
               </CardContent>
             </Card>
           </div>

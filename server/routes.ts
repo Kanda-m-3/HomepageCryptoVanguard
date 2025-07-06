@@ -37,81 +37,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       clientId: DISCORD_CLIENT_ID,
       redirectUri: DISCORD_REDIRECT_URI,
       baseUrl: getBaseUrl(),
-      replit_domains: process.env.REPLIT_DOMAINS,
-      hasClientSecret: !!DISCORD_CLIENT_SECRET,
-      fullOAuthUrl: `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20email`
-    });
-  });
-
-  // Test endpoint for debugging Discord application
-  app.get("/api/auth/discord/test", (req, res) => {
-    res.json({
-      message: "This endpoint tests if the Discord application is properly configured",
-      instructions: [
-        "1. Go to https://discord.com/developers/applications",
-        "2. Select your Crypto Vanguard application",
-        "3. In the OAuth2 section, make sure:",
-        "   - Redirect URIs includes: " + DISCORD_REDIRECT_URI,
-        "   - Client Secret is properly set",
-        "   - Application has 'bot' and 'applications.commands' scopes if needed",
-        "4. Try the OAuth URL manually:",
-        `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20email`
-      ]
+      replit_domains: process.env.REPLIT_DOMAINS
     });
   });
 
   // Discord OAuth2 authentication initiation
   app.get("/api/auth/discord", (req, res) => {
-    try {
-      // Validate Discord configuration
-      if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
-        throw new Error('Discord OAuth2 credentials not configured');
-      }
-
-      const scopes = ['identify', 'guilds', 'email'].join('%20');
-      const state = Math.random().toString(36).substring(7);
-      const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}&state=${state}`;
-      
-      console.log('Discord OAuth URL:', discordAuthUrl);
-      console.log('Client ID:', DISCORD_CLIENT_ID);
-      console.log('Redirect URI:', DISCORD_REDIRECT_URI);
-      console.log('Request headers:', req.headers);
-      
-      /*/ Try different redirect methods
-      if (req.query.method === 'location') {
-        // Send HTML that will redirect via JavaScript (like debug method)
-        res.send(`<!DOCTYPE html>
-<html>
-<head><title>Redirecting to Discord...</title></head>
-<body>
-<p>Redirecting to Discord...</p>
-<script>window.location.href = "${discordAuthUrl}";</script>
-</body>
-</html>`);
-      } else {
-*/
-      return res.redirect(discordAuthUrl);
-/*      } */
-    } catch (error) {
-      console.error('Discord OAuth initiation error:', error);
-      res.status(500).json({ error: 'Discord OAuth configuration error' });
-    }
+    const scopes = ['identify', 'guilds', 'email'].join('%20');
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}`;
+    console.log('Discord OAuth URL:', discordAuthUrl);
+    res.redirect(discordAuthUrl);
   });
 
   // Discord OAuth2 callback
   app.get("/api/auth/discord/callback", async (req, res) => {
-    const { code, error } = req.query;
-
-    console.log('Discord callback received:', { code: !!code, error, query: req.query });
-
-    if (error) {
-      console.error('Discord OAuth error:', error);
-      return res.redirect('/vip-community?error=oauth_error');
-    }
+    const { code } = req.query;
 
     if (!code) {
-      console.error('No authorization code provided');
-      return res.redirect('/vip-community?error=no_code');
+      return res.status(400).json({ error: "No authorization code provided" });
     }
 
     try {
@@ -176,11 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.createOrUpdateDiscordUser(userData);
 
-      // Set user session
-      (req as any).session.userId = user.id;
-      (req as any).session.discordUser = user;
-
-      console.log('User authenticated successfully:', { userId: user.id, username: user.username });
+      // Set user session/auth token (for now, just redirect with success)
       res.redirect('/vip-community?auth=success');
     } catch (error: any) {
       console.error('Discord OAuth error:', error);
@@ -190,29 +129,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current Discord user info
   app.get("/api/auth/user", async (req, res) => {
-    try {
-      const session = (req as any).session;
-      if (session && session.userId) {
-        const user = await storage.getUser(session.userId);
-        res.json({ user });
-      } else {
-        res.json({ user: null });
-      }
-    } catch (error) {
-      console.error('Error getting user:', error);
-      res.json({ user: null });
-    }
-  });
-
-  // Logout endpoint
-  app.post("/api/auth/logout", (req, res) => {
-    (req as any).session.destroy((err: any) => {
-      if (err) {
-        console.error('Session destroy error:', err);
-        return res.status(500).json({ error: 'Logout failed' });
-      }
-      res.json({ success: true });
-    });
+    // TODO: Implement proper session management
+    // For now, return null (not authenticated)
+    res.json({ user: null });
   });
 
   // Get crypto prices from CoinGecko API
