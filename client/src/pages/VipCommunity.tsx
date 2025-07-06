@@ -174,12 +174,12 @@ export default function VipCommunity() {
                     </Button>
                     
                     <Button 
-                      onClick={handleTestSameWindow}
+                      onClick={() => window.location.assign('https://discord.com/oauth2/authorize?client_id=1383003178584510524&response_type=code&redirect_uri=https%3A%2F%2F8a9eeb30-a0eb-4aba-a553-f6fc07f95202-00-33wq7j97wdxsb.janeway.replit.dev%2Fapi%2Fauth%2Fdiscord%2Fcallback&scope=identify+guilds+email')}
                       variant="outline"
-                      className="w-full border-yellow-600 text-yellow-300 hover:bg-yellow-700"
+                      className="w-full border-green-600 text-green-300 hover:bg-green-700"
                       size="sm"
                     >
-                      同じウィンドウでテスト
+                      Discord生成URLでテスト
                     </Button>
                   </div>
                 </div>
