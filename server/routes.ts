@@ -85,10 +85,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Discord OAuth2 callback
   app.get("/api/auth/discord/callback", async (req, res) => {
-    const { code } = req.query;
+    const { code, error } = req.query;
+
+    console.log('Discord callback received:', { code: !!code, error, query: req.query });
+
+    if (error) {
+      console.error('Discord OAuth error:', error);
+      return res.redirect('/vip-community?error=oauth_error');
+    }
 
     if (!code) {
-      return res.status(400).json({ error: "No authorization code provided" });
+      console.error('No authorization code provided');
+      return res.redirect('/vip-community?error=no_code');
     }
 
     try {
@@ -153,7 +161,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.createOrUpdateDiscordUser(userData);
 
-      // Set user session/auth token (for now, just redirect with success)
+      // Set user session
+      (req as any).session.userId = user.id;
+      (req as any).session.discordUser = user;
+
+      console.log('User authenticated successfully:', { userId: user.id, username: user.username });
       res.redirect('/vip-community?auth=success');
     } catch (error: any) {
       console.error('Discord OAuth error:', error);
@@ -163,9 +175,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current Discord user info
   app.get("/api/auth/user", async (req, res) => {
-    // TODO: Implement proper session management
-    // For now, return null (not authenticated)
-    res.json({ user: null });
+    try {
+      const session = (req as any).session;
+      if (session && session.userId) {
+        const user = await storage.getUser(session.userId);
+        res.json({ user });
+      } else {
+        res.json({ user: null });
+      }
+    } catch (error) {
+      console.error('Error getting user:', error);
+      res.json({ user: null });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", (req, res) => {
+    (req as any).session.destroy((err: any) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ success: true });
+    });
   });
 
   // Get crypto prices from CoinGecko API
