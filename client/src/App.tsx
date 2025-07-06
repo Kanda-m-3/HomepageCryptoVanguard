@@ -20,6 +20,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/discord" component={Discord} />
       <Route path="/vip" component={VipCommunity} />
+      <Route path="/vip-community" component={VipCommunity} />
       <Route path="/reports" component={AnalyticalReports} />
       <Route path="/checkout/:reportId" component={Checkout} />
       <Route path="/terms-of-service" component={TermsOfService} />
