@@ -16,19 +16,36 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_GUILD_ID = "1383003178584510524"; // Your Discord server ID
-const DISCORD_REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/api/auth/discord/callback`
-  : 'http://localhost:5000/api/auth/discord/callback';
+// Determine the correct base URL for redirects
+const getBaseUrl = () => {
+  if (process.env.REPLIT_DOMAINS) {
+    return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
+  }
+  return 'http://localhost:5000';
+};
+
+const DISCORD_REDIRECT_URI = `${getBaseUrl()}/api/auth/discord/callback`;
 
 if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
   throw new Error("Missing Discord OAuth2 credentials");
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Debug endpoint to check Discord OAuth configuration
+  app.get("/api/auth/discord/config", (req, res) => {
+    res.json({
+      clientId: DISCORD_CLIENT_ID,
+      redirectUri: DISCORD_REDIRECT_URI,
+      baseUrl: getBaseUrl(),
+      replit_domains: process.env.REPLIT_DOMAINS
+    });
+  });
+
   // Discord OAuth2 authentication initiation
   app.get("/api/auth/discord", (req, res) => {
     const scopes = ['identify', 'guilds', 'email'].join('%20');
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}`;
+    console.log('Discord OAuth URL:', discordAuthUrl);
     res.redirect(discordAuthUrl);
   });
 
