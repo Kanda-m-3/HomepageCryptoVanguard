@@ -9,6 +9,11 @@ export const users = pgTable("users", {
   email: text("email"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  discordId: text("discord_id").unique(),
+  discordUsername: text("discord_username"),
+  discordAvatar: text("discord_avatar"),
+  isServerMember: boolean("is_server_member").default(false),
+  isVipMember: boolean("is_vip_member").default(false),
 });
 
 export const analyticalReports = pgTable("analytical_reports", {
@@ -36,6 +41,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
 });
 
+export const insertDiscordUserSchema = createInsertSchema(users).pick({
+  discordId: true,
+  discordUsername: true,
+  discordAvatar: true,
+  email: true,
+  isServerMember: true,
+  isVipMember: true,
+});
+
 export const insertAnalyticalReportSchema = createInsertSchema(analyticalReports).omit({
   id: true,
   createdAt: true,
@@ -47,6 +61,7 @@ export const insertPurchaseSchema = createInsertSchema(purchases).omit({
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertDiscordUser = z.infer<typeof insertDiscordUserSchema>;
 export type User = typeof users.$inferSelect;
 export type AnalyticalReport = typeof analyticalReports.$inferSelect;
 export type InsertAnalyticalReport = z.infer<typeof insertAnalyticalReportSchema>;

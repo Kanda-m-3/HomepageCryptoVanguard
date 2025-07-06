@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
+import { insertDiscordUserSchema } from "@shared/schema";
+import CrossEnvironmentOAuthManager from "./oauth-config";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("Missing required Stripe secret: STRIPE_SECRET_KEY");
@@ -11,7 +13,176 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-05-28.basil",
 });
 
+// Discord OAuth2 configuration
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const DISCORD_GUILD_ID = "1357437337537220719"; // Crypto Vanguard Discord server ID
+// Use the cross-environment OAuth manager for redirect URIs
+const getDiscordRedirectUri = (req: any) => {
+  const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
+  return environment.redirectUri;
+};
+
+if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+  throw new Error("Missing Discord OAuth2 credentials");
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Debug endpoint to check Discord OAuth configuration
+  app.get("/api/auth/discord/config", (req, res) => {
+    const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
+    res.json({
+      clientId: DISCORD_CLIENT_ID,
+      currentEnvironment: environment,
+      allPossibleRedirectUris: CrossEnvironmentOAuthManager.generateAllRedirectUris(),
+      setupInstructions: CrossEnvironmentOAuthManager.getDiscordConfigInstructions(DISCORD_CLIENT_ID || ''),
+      replit_domains: process.env.REPLIT_DOMAINS
+    });
+  });
+
+  // New endpoint to generate OAuth setup instructions
+  app.get("/api/auth/discord/setup-guide", (req, res) => {
+    res.json({
+      instructions: CrossEnvironmentOAuthManager.getDiscordConfigInstructions(DISCORD_CLIENT_ID || ''),
+      allRedirectUris: CrossEnvironmentOAuthManager.generateAllRedirectUris(),
+      currentEnvironment: CrossEnvironmentOAuthManager.detectEnvironment(req)
+    });
+  });
+
+  // Discord OAuth2 authentication initiation
+  app.get("/api/auth/discord", (req, res) => {
+    const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
+    const redirectUri = environment.redirectUri;
+    
+    // Validate redirect URI
+    if (!CrossEnvironmentOAuthManager.validateRedirectUri(redirectUri, req)) {
+      console.error('Invalid redirect URI detected:', redirectUri);
+      return res.status(400).json({ error: 'Invalid redirect URI configuration' });
+    }
+    
+    const scopes = ['identify', 'guilds', 'email'].join('%20');
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
+    
+    console.log('Discord OAuth URL:', discordAuthUrl);
+    console.log('Environment:', environment.name);
+    console.log('Using redirect URI:', redirectUri);
+    
+    res.redirect(discordAuthUrl);
+  });
+
+  // Discord OAuth2 callback
+  app.get("/api/auth/discord/callback", async (req, res) => {
+    const { code } = req.query;
+
+    if (!code) {
+      return res.status(400).json({ error: "No authorization code provided" });
+    }
+
+    try {
+      // Exchange code for access token
+      const redirectUri = getDiscordRedirectUri(req);
+      const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: DISCORD_CLIENT_ID!,
+          client_secret: DISCORD_CLIENT_SECRET!,
+          grant_type: 'authorization_code',
+          code: code as string,
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        throw new Error(`Discord token exchange failed: ${tokenData.error}`);
+      }
+
+      // Get user information
+      const userResponse = await fetch('https://discord.com/api/users/@me', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      });
+
+      const discordUser = await userResponse.json();
+
+      // Get user's guilds to check server membership
+      const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      });
+
+      const guilds = await guildsResponse.json();
+      
+      console.log('Discord user guilds:', guilds.map((g: any) => ({ id: g.id, name: g.name })));
+      console.log('Looking for guild ID:', DISCORD_GUILD_ID);
+      
+      const isServerMember = guilds.some((guild: any) => guild.id === DISCORD_GUILD_ID);
+      
+      console.log('Is server member check:', isServerMember);
+
+      // Check if user is a member of the Crypto Vanguard server
+      const actualIsServerMember = isServerMember;
+      
+      if (!actualIsServerMember) {
+        console.log('User is not a member of Crypto Vanguard server');
+        return res.redirect('/vip-community?error=not_member');
+      }
+
+      // Check if user has VIP role (this would require bot token to get guild member info)
+      // For now, we'll set it to false and implement VIP checking later
+      const isVipMember = false;
+
+      // Create or update Discord user in database
+      const userData = {
+        discordId: discordUser.id,
+        discordUsername: discordUser.username,
+        discordAvatar: discordUser.avatar,
+        email: discordUser.email,
+        isServerMember: actualIsServerMember,
+        isVipMember,
+      };
+
+      const user = await storage.createOrUpdateDiscordUser(userData);
+
+      // Store user in session
+      req.session.userId = user.id;
+      
+      console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
+      
+      // Redirect to VIP community page
+      res.redirect('/vip-community?auth=success');
+    } catch (error: any) {
+      console.error('Discord OAuth error:', error);
+      res.redirect('/vip-community?error=auth_failed');
+    }
+  });
+
+  // Get current Discord user info
+  app.get("/api/auth/user", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.json({ user: null });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        delete req.session.userId;
+        return res.json({ user: null });
+      }
+
+      res.json({ user });
+    } catch (error) {
+      console.error('Error getting user:', error);
+      res.json({ user: null });
+    }
+  });
+
   // Get crypto prices from CoinGecko API
   app.get("/api/crypto-prices", async (req, res) => {
     try {

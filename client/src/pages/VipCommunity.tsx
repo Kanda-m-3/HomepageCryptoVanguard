@@ -1,29 +1,159 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Target, TrendingUp, Users, Zap, Lock, CheckCircle, ArrowRight } from "lucide-react";
+import { Crown, Target, TrendingUp, Users, Zap, Lock, CheckCircle, ArrowRight, AlertCircle } from "lucide-react";
+import { useLocation } from "wouter";
+import DiscordJoinFlow from "@/components/DiscordJoinFlow";
+import { useToast } from "@/hooks/use-toast";
 
 export default function VipCommunity() {
+  const [location] = useLocation();
+  const [showJoinFlow, setShowJoinFlow] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Check URL parameters for authentication state
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const auth = urlParams.get('auth');
+
+    if (error === 'not_member') {
+      setShowJoinFlow(true);
+      toast({
+        title: "Discord サーバー参加が必要",
+        description: "VIPコミュニティにアクセスするには、まずDiscordサーバーに参加してください。",
+        variant: "destructive",
+      });
+    } else if (error === 'auth_failed') {
+      toast({
+        title: "認証エラー",
+        description: "Discord認証に失敗しました。もう一度お試しください。",
+        variant: "destructive",
+      });
+      setIsAuthenticated(false);
+    } else if (auth === 'success') {
+      // Clean up URL parameters first
+      window.history.replaceState({}, '', '/vip-community');
+      // Then check authentication status
+      checkAuthenticationStatus();
+      toast({
+        title: "認証成功",
+        description: "Discord認証が完了しました。VIPコミュニティへようこそ！",
+      });
+    } else {
+      // Check authentication status
+      checkAuthenticationStatus();
+    }
+  }, [location, toast]);
+
+  const checkAuthenticationStatus = async () => {
+    try {
+      const response = await fetch('/api/auth/user');
+      const data = await response.json();
+      setIsAuthenticated(!!data.user);
+    } catch (error) {
+      setIsAuthenticated(false);
+    }
+  };
+
+  const handleDiscordLogin = () => {
+    // Use direct navigation instead of popup
+    /* window.location.href = '/api/auth/discord';*/
+    window.open('/api/auth/discord', '_blank', 'noopener');
+  };
+
+  const handleBackFromJoinFlow = () => {
+    setShowJoinFlow(false);
+    setIsAuthenticated(false);
+  };
+
+  // Show Discord join flow if user is not a server member
+  if (showJoinFlow) {
+    return <DiscordJoinFlow onBack={handleBackFromJoinFlow} />;
+  }
+
+  // Show authentication prompt if not authenticated
+  if (isAuthenticated === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <Card className="bg-neutral-800/50 backdrop-blur border-neutral-700">
+              <CardHeader>
+                <div className="mx-auto mb-4 w-16 h-16 bg-crypto-gold/20 rounded-full flex items-center justify-center">
+                  <Crown className="h-8 w-8 text-crypto-gold" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-crypto-gold mb-2">
+                  VIPコミュニティ
+                </CardTitle>
+                <p className="text-neutral-300">
+                  VIPコミュニティにアクセスするには、Discordアカウントでの認証が必要です
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-neutral-700/50 p-4 rounded-lg border border-neutral-600">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-500 mb-1">認証について</h3>
+                      <p className="text-sm text-neutral-300">
+                        VIPコミュニティへのアクセスには、Crypto Vanguard Discordサーバーのメンバーシップが必要です。
+                        認証により、サーバー参加状況とVIPロールを確認します。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleDiscordLogin}
+                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
+                  size="lg"
+                >
+                  Discordで認証
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-crypto-gold border-t-transparent rounded-full mx-auto" />
+            <p className="mt-4 text-neutral-300">認証状況を確認中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const benefits = [
     {
       icon: <Target className="h-6 w-6" />,
-      title: "エキスパート分析",
-      description: "専門アナリストによる詳細な市場分析と投資レポートを毎週配信"
+      title: "独占レポート",
+      description: "主要な暗号資産・新規プロジェクトに関する定期レポート"
     },
     {
       icon: <Zap className="h-6 w-6" />,
-      title: "トレーディングシグナル",
-      description: "リアルタイムの売買シグナルと具体的なエントリー・エグジット戦略"
+      title: "プレセール情報",
+      description: "注目の暗号資産のプレセール情報をタイムリーに配信"
     },
     {
       icon: <Lock className="h-6 w-6" />,
-      title: "独占インサイト",
-      description: "一般には公開されない業界の内部情報と先行指標"
+      title: "ステーキング・利回り情報",
+      description: "各種ステーキングサービスの概要と利回り情報を配信"
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "専門家との直接ディスカッション",
-      description: "暗号通貨専門家とのプライベートディスカッションルーム"
+      title: "市場分析チャット",
+      description: "主要な暗号資産の市場分析を配信、VIPメンバー間で意見交換"
     }
   ];
 
@@ -50,35 +180,15 @@ export default function VipCommunity() {
               <Crown className="h-10 w-10 crypto-gold" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold neutral-900 mb-4">
-            VIP Exclusive Community
-          </h1>
-          <p className="text-xl neutral-600 max-w-2xl mx-auto leading-relaxed">
-            エキスパート分析、トレーディングシグナル、独占インサイト、
-            そして暗号通貨専門家との限定ディスカッションにアクセスできます。
-          </p>
+          <h1 className="text-4xl font-bold neutral-900 mb-4">暗号資産のプレミアム情報を入手しよう</h1>
+          <p className="text-xl neutral-600 max-w-2xl mx-auto leading-relaxed">限定VIPコミュニティに参加して、専門家による分析、取引シグナル、限定インサイト、専門家とのディスカッションにアクセスしましょう。</p>
         </div>
 
-        {/* Status Notice */}
-        <Card className="mb-12 bg-yellow-50 border-yellow-200">
-          <CardContent className="p-6 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <Crown className="h-6 w-6 crypto-gold mr-2" />
-              <span className="font-semibold neutral-900">VIPコミュニティ</span>
-              <Badge className="ml-2 bg-yellow-100 text-yellow-800">準備中</Badge>
-            </div>
-            <p className="neutral-600">
-              VIPコミュニティは現在準備中です。既存のCryptoVanguardMembershipページで詳細をご確認いただけます。
-              こちらは参照用のプレースホルダーページです。
-            </p>
-          </CardContent>
-        </Card>
+        
 
         {/* Benefits */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">
-            VIPメンバー限定特典
-          </h2>
+          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">VIPメンバーの特典</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {benefits.map((benefit, index) => (
               <Card key={index} className="bg-white hover:shadow-lg transition-shadow duration-300">
@@ -102,65 +212,23 @@ export default function VipCommunity() {
           </div>
         </div>
 
-        {/* Feature List */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle className="text-2xl neutral-900 flex items-center">
-              <TrendingUp className="h-6 w-6 crypto-gold mr-2" />
-              提供サービス一覧
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                  <span className="neutral-800">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        
 
         {/* Pricing Tiers */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">
-            メンバーシッププラン
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="bg-white">
+          <h2 className="text-3xl font-bold neutral-900 mb-8 text-center">VIPメンバーに登録</h2>
+          <div className="flex justify-center">
+            <Card className="bg-white ring-2 ring-crypto-gold relative max-w-md w-full">
               <CardHeader>
-                <CardTitle className="text-xl neutral-900">VIPベーシック</CardTitle>
-                <div className="text-3xl font-bold crypto-gold">¥29,800<span className="text-base neutral-600">/月</span></div>
+                <CardTitle className="text-xl neutral-900">VIPメンバー</CardTitle>
+                <div className="text-3xl font-bold crypto-gold">¥10,000<span className="text-base neutral-600">/月</span></div>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />週次市場分析レポート</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />基本的な売買シグナル</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />VIP限定ディスカッション</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />月次ウェビナー参加</li>
-                </ul>
-                <Button className="w-full bg-crypto-cyan hover:bg-blue-400 text-white" disabled>
-                  準備中
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white ring-2 ring-crypto-gold relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-crypto-gold text-neutral-900">最人気</Badge>
-              </div>
-              <CardHeader>
-                <CardTitle className="text-xl neutral-900">VIPプレミアム</CardTitle>
-                <div className="text-3xl font-bold crypto-gold">¥59,800<span className="text-base neutral-600">/月</span></div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />全ての基本プラン特典</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />リアルタイム売買シグナル</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />プレマーケット情報</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />個別ポートフォリオアドバイス</li>
-                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />専門家との1対1相談</li>
+                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />全てのDiscord VIPチャンネル</li>
+                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />専門的なレポートの定期配信</li>
+                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />いつでもキャンセル可能</li>
+                  <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Stripeによる安全な支払い</li>
                 </ul>
                 <Button className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900" disabled>
                   準備中
