@@ -17,14 +17,23 @@ const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_GUILD_ID = "1357437337537220719"; // Crypto Vanguard Discord server ID
 // Determine the correct base URL for redirects
-const getBaseUrl = () => {
+const getBaseUrl = (req?: any) => {
+  // In production deployment, use the request host
+  if (req && req.get('host')) {
+    const protocol = req.get('x-forwarded-proto') || (req.get('host').includes('localhost') ? 'http' : 'https');
+    return `${protocol}://${req.get('host')}`;
+  }
+  
+  // Fallback to environment variables for development
   if (process.env.REPLIT_DOMAINS) {
     return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
   }
+  
   return 'http://localhost:5000';
 };
 
-const DISCORD_REDIRECT_URI = `${getBaseUrl()}/api/auth/discord/callback`;
+// Dynamic redirect URI based on request
+const getDiscordRedirectUri = (req: any) => `${getBaseUrl(req)}/api/auth/discord/callback`;
 
 if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
   throw new Error("Missing Discord OAuth2 credentials");
@@ -35,17 +44,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord/config", (req, res) => {
     res.json({
       clientId: DISCORD_CLIENT_ID,
-      redirectUri: DISCORD_REDIRECT_URI,
-      baseUrl: getBaseUrl(),
+      redirectUri: getDiscordRedirectUri(req),
+      baseUrl: getBaseUrl(req),
+      host: req.get('host'),
+      protocol: req.get('x-forwarded-proto'),
       replit_domains: process.env.REPLIT_DOMAINS
     });
   });
 
   // Discord OAuth2 authentication initiation
   app.get("/api/auth/discord", (req, res) => {
+    const redirectUri = getDiscordRedirectUri(req);
     const scopes = ['identify', 'guilds', 'email'].join('%20');
-    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&response_type=code&scope=${scopes}`;
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
     console.log('Discord OAuth URL:', discordAuthUrl);
+    console.log('Using redirect URI:', redirectUri);
     res.redirect(discordAuthUrl);
   });
 
@@ -59,6 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Exchange code for access token
+      const redirectUri = getDiscordRedirectUri(req);
       const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
         method: 'POST',
         headers: {
@@ -69,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           client_secret: DISCORD_CLIENT_SECRET!,
           grant_type: 'authorization_code',
           code: code as string,
-          redirect_uri: DISCORD_REDIRECT_URI,
+          redirect_uri: redirectUri,
         }),
       });
 
