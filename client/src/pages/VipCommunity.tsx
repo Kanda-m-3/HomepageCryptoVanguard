@@ -23,9 +23,24 @@ export default function VipCommunity() {
 
   // Create VIP subscription mutation
   const createVipSubscription = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/create-vip-subscription"),
-    onSuccess: (data) => {
+    mutationFn: async () => {
+      const response = await fetch('/api/create-vip-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
       console.log('VIP subscription response:', data);
+      return data;
+    },
+    onSuccess: (data) => {
       if (data.redirect) {
         // User is already VIP, redirect to VIP member page
         window.location.href = data.redirect;
