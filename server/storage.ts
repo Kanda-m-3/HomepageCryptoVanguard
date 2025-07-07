@@ -6,9 +6,17 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByDiscordId(discordId: string): Promise<User | undefined>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User>;
   updateStripeCustomerId(userId: number, customerId: string): Promise<User>;
+  updateSubscriptionInfo(userId: number, subscriptionData: {
+    stripeSubscriptionId: string;
+    subscriptionStatus: string;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+  }): Promise<User>;
+  updateVipStatus(userId: number, isVipMember: boolean): Promise<User>;
   
   getAllReports(): Promise<AnalyticalReport[]>;
   getReport(id: number): Promise<AnalyticalReport | undefined>;
@@ -208,6 +216,47 @@ export class MemStorage implements IStorage {
       purchase => purchase.userId === userId && purchase.reportId === reportId
     );
   }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.stripeCustomerId === customerId) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async updateSubscriptionInfo(userId: number, subscriptionData: {
+    stripeSubscriptionId: string;
+    subscriptionStatus: string;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+  }): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const updatedUser = { 
+      ...user, 
+      stripeSubscriptionId: subscriptionData.stripeSubscriptionId,
+      subscriptionStatus: subscriptionData.subscriptionStatus,
+      currentPeriodEnd: subscriptionData.currentPeriodEnd,
+      cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd,
+      isVipMember: subscriptionData.subscriptionStatus === 'active'
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateVipStatus(userId: number, isVipMember: boolean): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const updatedUser = { ...user, isVipMember };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -281,6 +330,40 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ stripeCustomerId: customerId })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));
+    return user || undefined;
+  }
+
+  async updateSubscriptionInfo(userId: number, subscriptionData: {
+    stripeSubscriptionId: string;
+    subscriptionStatus: string;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        stripeSubscriptionId: subscriptionData.stripeSubscriptionId,
+        subscriptionStatus: subscriptionData.subscriptionStatus,
+        currentPeriodEnd: subscriptionData.currentPeriodEnd,
+        cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd,
+        isVipMember: subscriptionData.subscriptionStatus === 'active'
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateVipStatus(userId: number, isVipMember: boolean): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ isVipMember })
       .where(eq(users.id, userId))
       .returning();
     return user;

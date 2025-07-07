@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,12 +7,57 @@ import { Crown, Target, TrendingUp, Users, Zap, Lock, CheckCircle, ArrowRight, A
 import { useLocation } from "wouter";
 import DiscordJoinFlow from "@/components/DiscordJoinFlow";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function VipCommunity() {
   const [location] = useLocation();
   const [showJoinFlow, setShowJoinFlow] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { toast } = useToast();
+
+  // Get current user data
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+    enabled: true,
+  });
+
+  // Create VIP subscription mutation
+  const createVipSubscription = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/create-vip-subscription"),
+    onSuccess: (data) => {
+      if (data.redirect) {
+        // User is already VIP, redirect to VIP member page
+        window.location.href = data.redirect;
+      } else if (data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      }
+    },
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "VIPメンバーへ登録できませんでした。再試行してください。",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleVipRegistration = async () => {
+    if (!user) {
+      // User not authenticated, redirect to Discord OAuth
+      window.location.href = '/api/auth/discord';
+      return;
+    }
+
+    if (user.isVipMember) {
+      // User is already VIP, redirect to VIP member page
+      window.location.href = '/vip-member';
+      return;
+    }
+
+    // Create subscription
+    createVipSubscription.mutate();
+  };
 
   useEffect(() => {
     // Check URL parameters for authentication state
@@ -230,8 +276,12 @@ export default function VipCommunity() {
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />いつでもキャンセル可能</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Stripeによる安全な支払い</li>
                 </ul>
-                <Button className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900">
-                  登録
+                <Button 
+                  className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900"
+                  onClick={handleVipRegistration}
+                  disabled={createVipSubscription.isPending}
+                >
+                  {createVipSubscription.isPending ? '処理中...' : user?.isVipMember ? 'VIPダッシュボード' : '登録'}
                 </Button>
               </CardContent>
             </Card>

@@ -217,6 +217,60 @@ export default function OAuthSetup() {
             </CardContent>
           </Card>
 
+          {/* Stripe Webhook Endpoints */}
+          <Card className="bg-neutral-800 border-neutral-700 mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ExternalLink className="h-5 w-5" />
+                Stripe Webhook エンドポイント
+              </CardTitle>
+              <p className="text-sm text-neutral-400">
+                Stripe Dashboardに設定する必要があるWebhookエンドポイント
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-neutral-400">現在の環境のWebhookエンドポイント</label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <code className="flex-1 bg-neutral-900 px-3 py-2 rounded text-sm">
+                      {config.currentEnvironment.protocol}://{config.currentEnvironment.domain}/api/webhooks/stripe
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(`${config.currentEnvironment.protocol}://${config.currentEnvironment.domain}/api/webhooks/stripe`)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded">
+                  <h4 className="font-semibold text-blue-300 mb-2">必要なWebhookイベント:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-blue-200">
+                    <li>checkout.session.completed</li>
+                    <li>customer.subscription.deleted</li>
+                    <li>customer.subscription.updated</li>
+                    <li>invoice.payment_failed</li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-900/20 border border-green-500/30 p-4 rounded">
+                  <h4 className="font-semibold text-green-300 mb-2">設定手順:</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-sm text-green-200">
+                    <li>Stripe Dashboardの「Webhooks」セクションを開く</li>
+                    <li>「Add endpoint」をクリック</li>
+                    <li>上記のエンドポイントURLを入力</li>
+                    <li>必要なイベントを選択</li>
+                    <li>「Add endpoint」で保存</li>
+                    <li>Webhook signing secretを環境変数「STRIPE_WEBHOOK_SECRET」に設定</li>
+                  </ol>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Test Section */}
           <Card className="bg-neutral-800 border-neutral-700">
             <CardHeader>

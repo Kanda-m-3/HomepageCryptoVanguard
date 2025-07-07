@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
@@ -12,6 +13,9 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-05-28.basil",
 });
+
+// VIP Membership Product ID
+const VIP_PRODUCT_ID = "prod_SdLl3qaKNdlbYX";
 
 // Discord OAuth2 configuration
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -201,6 +205,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // VIP subscription management
+  app.post("/api/create-vip-subscription", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Check if user is already VIP
+      if (user.isVipMember && user.subscriptionStatus === 'active') {
+        return res.json({ redirect: "/vip-member" });
+      }
+
+      let customerId = user.stripeCustomerId;
+      
+      // Create Stripe customer if not exists
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            userId: user.id.toString(),
+            discordId: user.discordId || "",
+            discordUsername: user.discordUsername || ""
+          }
+        });
+        customerId = customer.id;
+        await storage.updateStripeCustomerId(user.id, customerId);
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'jpy',
+              product: VIP_PRODUCT_ID,
+              recurring: {
+                interval: 'month',
+              },
+              unit_amount: 1000000, // ¥10,000 in cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${req.protocol}://${req.get('host')}/vip-member?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/vip`,
+        metadata: {
+          userId: user.id.toString(),
+        },
+      });
+
+      res.json({ sessionId: session.id, url: session.url });
+    } catch (error: any) {
+      console.error('VIP subscription error:', error);
+      res.status(500).json({ error: 'Failed to create subscription' });
+    }
+  });
+
+  // Cancel VIP subscription
+  app.post("/api/cancel-vip-subscription", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !user.stripeSubscriptionId) {
+        return res.status(400).json({ error: "No active subscription found" });
+      }
+
+      // Cancel at period end
+      await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('VIP cancellation error:', error);
+      res.status(500).json({ error: 'Failed to cancel subscription' });
+    }
+  });
+
   // Get all analytical reports
   app.get("/api/reports", async (req, res) => {
     try {
@@ -318,6 +411,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .status(500)
         .json({ message: "Error confirming purchase: " + error.message });
     }
+  });
+
+  // Discord role management helper functions
+  async function assignVipRole(discordId: string) {
+    if (!discordId) return;
+    
+    try {
+      const response = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordId}/roles/VIP`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to assign VIP role:', await response.text());
+      }
+    } catch (error) {
+      console.error('Discord role assignment error:', error);
+    }
+  }
+
+  async function removeVipRole(discordId: string) {
+    if (!discordId) return;
+    
+    try {
+      const response = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordId}/roles/VIP`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to remove VIP role:', await response.text());
+      }
+    } catch (error) {
+      console.error('Discord role removal error:', error);
+    }
+  }
+
+  // Stripe webhook handler for VIP subscription events
+  app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    let event;
+
+    try {
+      const sig = req.headers['stripe-signature'];
+      if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        throw new Error('Missing Stripe webhook secret');
+      }
+      event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err: any) {
+      console.log(`⚠️  Webhook signature verification failed.`, err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    console.log(`🔔 Stripe event: ${event.type}`);
+
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const userId = session.metadata?.userId;
+          
+          if (userId && session.subscription) {
+            const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+            const user = await storage.getUser(parseInt(userId));
+            
+            if (user) {
+              // Update user subscription info
+              await storage.updateSubscriptionInfo(parseInt(userId), {
+                stripeSubscriptionId: subscription.id,
+                subscriptionStatus: subscription.status,
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                cancelAtPeriodEnd: subscription.cancel_at_period_end,
+              });
+
+              // Assign VIP role in Discord
+              if (user.discordId) {
+                await assignVipRole(user.discordId);
+              }
+            }
+          }
+          break;
+        }
+
+        case 'customer.subscription.updated': {
+          const subscription = event.data.object as Stripe.Subscription;
+          const user = await storage.getUserByStripeCustomerId(subscription.customer as string);
+          
+          if (user) {
+            await storage.updateSubscriptionInfo(user.id, {
+              stripeSubscriptionId: subscription.id,
+              subscriptionStatus: subscription.status,
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            });
+          }
+          break;
+        }
+
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as Stripe.Subscription;
+          const user = await storage.getUserByStripeCustomerId(subscription.customer as string);
+          
+          if (user) {
+            // Remove VIP status and Discord role
+            await storage.updateVipStatus(user.id, false);
+            if (user.discordId) {
+              await removeVipRole(user.discordId);
+            }
+          }
+          break;
+        }
+
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object as Stripe.Invoice;
+          if (invoice.subscription) {
+            const user = await storage.getUserByStripeCustomerId(invoice.customer as string);
+            
+            if (user) {
+              // Remove VIP status and Discord role on payment failure
+              await storage.updateVipStatus(user.id, false);
+              if (user.discordId) {
+                await removeVipRole(user.discordId);
+              }
+            }
+          }
+          break;
+        }
+
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
+      }
+    } catch (error) {
+      console.error('Webhook processing error:', error);
+      return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+
+    res.json({ received: true });
   });
 
   const httpServer = createServer(app);

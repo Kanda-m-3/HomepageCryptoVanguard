@@ -14,6 +14,7 @@ import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import OAuthSetup from "@/pages/OAuthSetup";
 import CrossEnvironmentDemo from "@/pages/CrossEnvironmentDemo";
+import VipMember from "@/pages/VipMember";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/oauth-setup" component={OAuthSetup} />
       <Route path="/cross-env-demo" component={CrossEnvironmentDemo} />
+      <Route path="/vip-member" component={VipMember} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -9,6 +9,9 @@ export const users = pgTable("users", {
   email: text("email"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status"), // active, canceled, past_due, etc.
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
   discordId: text("discord_id").unique(),
   discordUsername: text("discord_username"),
   discordAvatar: text("discord_avatar"),
