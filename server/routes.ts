@@ -246,10 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             price_data: {
               currency: 'jpy',
-              product_data: {
-                name: 'Crypto Vanguard VIPメンバーシップ',
-                description: '仮想通貨投資の専門コミュニティへのアクセス',
-              },
+              product: VIP_PRODUCT_ID,
               recurring: {
                 interval: 'month',
               },
@@ -266,7 +263,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      console.log('Stripe checkout session created:', session.id, 'URL:', session.url);
       res.json({ sessionId: session.id, url: session.url });
     } catch (error: any) {
       console.error('VIP subscription error:', error);
