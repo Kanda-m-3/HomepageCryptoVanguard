@@ -14,8 +14,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-05-28.basil",
 });
 
-// VIP Membership Product ID
-const VIP_PRODUCT_ID = "prod_SdLl3qaKNdlbYX";
+// VIP Membership Price ID (need to create price in Stripe Dashboard)
+const VIP_PRICE_ID = process.env.STRIPE_PRICE_ID || "price_1QZ9H9L2ZxQQbCf4qxQQbCf4";
 
 // Discord OAuth2 configuration
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateStripeCustomerId(user.id, customerId);
       }
 
-      // Create checkout session
+      // Create checkout session with test price for demo
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ['card'],
@@ -246,11 +246,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             price_data: {
               currency: 'jpy',
-              product: VIP_PRODUCT_ID,
+              product_data: {
+                name: 'VIP メンバーシップ',
+                description: '全てのDiscord VIPチャンネルアクセス、専門的なレポートの定期配信',
+              },
               recurring: {
                 interval: 'month',
               },
-              unit_amount: 1000000, // ¥10,000 in cents
+              unit_amount: 1000000, // ¥10,000 in cents (JPY doesn't use decimals)
             },
             quantity: 1,
           },
@@ -263,6 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
+      console.log('Stripe checkout session created:', session.id, session.url);
       res.json({ sessionId: session.id, url: session.url });
     } catch (error: any) {
       console.error('VIP subscription error:', error);

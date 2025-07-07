@@ -25,15 +25,25 @@ export default function VipCommunity() {
   const createVipSubscription = useMutation({
     mutationFn: () => apiRequest("POST", "/api/create-vip-subscription"),
     onSuccess: (data) => {
+      console.log('VIP subscription response:', data);
       if (data.redirect) {
         // User is already VIP, redirect to VIP member page
         window.location.href = data.redirect;
       } else if (data.url) {
         // Redirect to Stripe checkout
+        console.log('Redirecting to Stripe:', data.url);
         window.location.href = data.url;
+      } else {
+        console.error('No redirect URL received:', data);
+        toast({
+          title: "エラー",
+          description: "チェックアウトURLを取得できませんでした。",
+          variant: "destructive",
+        });
       }
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('VIP subscription error:', error);
       toast({
         title: "エラー",
         description: "VIPメンバーへ登録できませんでした。再試行してください。",
