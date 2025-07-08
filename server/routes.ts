@@ -253,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               recurring: {
                 interval: 'month',
               },
-              unit_amount: 1000000, // ¥10,000 in cents (JPY doesn't use decimals)
+              unit_amount: 10000, // Debugged JPY doesn't use decimals
             },
             quantity: 1,
           },
