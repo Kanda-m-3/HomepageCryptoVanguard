@@ -471,21 +471,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhooks
   app.post("/api/stripe/webhook", async (req, res) => {
+    console.log('Webhook received:', {
+      headers: req.headers,
+      body: req.body ? 'Present' : 'Missing',
+      signature: req.headers['stripe-signature'] ? 'Present' : 'Missing'
+    });
+
     const sig = req.headers['stripe-signature'];
     let event;
 
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('STRIPE_WEBHOOK_SECRET environment variable is not set');
+      return res.status(500).send('Webhook secret not configured');
+    }
+
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+      console.log('Webhook event verified:', event.type);
     } catch (err: any) {
-      console.log(`Webhook signature verification failed.`, err.message);
+      console.error(`Webhook signature verification failed:`, err.message);
+      console.error('Expected endpoint secret:', process.env.STRIPE_WEBHOOK_SECRET ? 'Set' : 'Not set');
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     try {
+      console.log('Processing webhook event:', event.type, 'ID:', event.id);
+      
       switch (event.type) {
         case 'checkout.session.completed':
+          console.log('Processing checkout.session.completed');
           const session = event.data.object;
           const userId = parseInt(session.metadata.userId);
+          console.log('Session metadata userId:', session.metadata.userId);
           
           if (session.mode === 'subscription') {
             const subscription = await stripe.subscriptions.retrieve(session.subscription);
