@@ -230,8 +230,13 @@ export default function VipCommunity() {
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />いつでもキャンセル可能</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Stripeによる安全な支払い</li>
                 </ul>
-                <Button className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900" disabled>
-                  準備中
+                <Button 
+                  className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900"
+                  onClick={() => {
+                    // ボタンクリック時の処理は後で実装
+                  }}
+                >
+                  登録
                 </Button>
               </CardContent>
             </Card>
