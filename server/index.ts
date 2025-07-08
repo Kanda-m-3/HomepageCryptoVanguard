@@ -10,6 +10,11 @@ declare module "express-session" {
 }
 
 const app = express();
+
+// Raw body parser for Stripe webhooks
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
+// Parse JSON bodies for all other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

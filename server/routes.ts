@@ -27,6 +27,40 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
   throw new Error("Missing Discord OAuth2 credentials");
 }
 
+// Discord Bot Token for role management (requires bot permissions)
+const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+const DISCORD_SERVER_ID = "1357437337537220719"; // Crypto Vanguard server ID
+const VIP_ROLE_ID = process.env.DISCORD_VIP_ROLE_ID; // VIP role ID (needs to be set)
+
+// Function to assign/remove VIP role
+async function assignDiscordVipRole(discordUserId: string, assign: boolean) {
+  if (!DISCORD_BOT_TOKEN || !VIP_ROLE_ID) {
+    console.log('Discord bot token or VIP role ID not configured, skipping role assignment');
+    return;
+  }
+
+  try {
+    const url = `https://discord.com/api/guilds/${DISCORD_SERVER_ID}/members/${discordUserId}/roles/${VIP_ROLE_ID}`;
+    const method = assign ? 'PUT' : 'DELETE';
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      console.log(`${assign ? 'Assigned' : 'Removed'} VIP role for Discord user: ${discordUserId}`);
+    } else {
+      console.error(`Failed to ${assign ? 'assign' : 'remove'} VIP role:`, response.status, await response.text());
+    }
+  } catch (error) {
+    console.error('Error managing Discord VIP role:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Debug endpoint to check Discord OAuth configuration
   app.get("/api/auth/discord/config", (req, res) => {
@@ -387,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'subscription',
-        success_url: `${req.protocol}://${req.get('host')}/vip-member?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${req.protocol}://${req.get('host')}/vip-member?payment=success`,
         cancel_url: `${req.protocol}://${req.get('host')}/vip-community?canceled=true`,
         metadata: {
           userId: user.id.toString(),
@@ -464,13 +498,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount / 100).toString(),
               isVipMember: true,
             });
+
+            // Add VIP role to Discord user
+            const user = await storage.getUser(userId);
+            if (user && user.discordId) {
+              await assignDiscordVipRole(user.discordId, true);
+            }
           }
           break;
 
         case 'customer.subscription.updated':
           const updatedSubscription = event.data.object;
           const customer = await stripe.customers.retrieve(updatedSubscription.customer);
-          const userForUpdate = await storage.getUserByUsername(customer.metadata?.userId || '');
+          const userForUpdate = await storage.getUser(parseInt(customer.metadata?.userId || '0'));
           
           if (userForUpdate) {
             await storage.updateUserSubscriptionInfo(userForUpdate.id, {
@@ -485,20 +525,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'customer.subscription.deleted':
           const deletedSubscription = event.data.object;
           const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer);
-          const userForDeletion = await storage.getUserByUsername(deletedCustomer.metadata?.userId || '');
+          const userForDeletion = await storage.getUser(parseInt(deletedCustomer.metadata?.userId || '0'));
           
           if (userForDeletion) {
             await storage.updateUserSubscriptionInfo(userForDeletion.id, {
               subscriptionStatus: 'canceled',
               isVipMember: false,
             });
+
+            // Remove VIP role from Discord user
+            if (userForDeletion.discordId) {
+              await assignDiscordVipRole(userForDeletion.discordId, false);
+            }
           }
           break;
 
         case 'invoice.payment_failed':
           const failedInvoice = event.data.object;
           const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer);
-          const userForFailure = await storage.getUserByUsername(failedCustomer.metadata?.userId || '');
+          const userForFailure = await storage.getUser(parseInt(failedCustomer.metadata?.userId || '0'));
           
           if (userForFailure) {
             await storage.updateUserSubscriptionInfo(userForFailure.id, {

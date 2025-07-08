@@ -57,10 +57,23 @@ export default function VipMember() {
   });
 
   useEffect(() => {
+    // Check for payment success parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    
+    if (paymentStatus === 'success') {
+      toast({
+        title: "決済完了",
+        description: "VIPメンバーシップの登録が完了しました！",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/vip-member');
+    }
+
     if (!isLoading && (!user || !user.isVipMember)) {
       setLocation("/vip-community");
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, setLocation, toast]);
 
   if (isLoading) {
     return (

@@ -79,7 +79,16 @@ export default function VipCommunity() {
     try {
       const response = await fetch('/api/auth/user');
       const data = await response.json();
-      setIsAuthenticated(!!data.user);
+      if (data.user) {
+        setIsAuthenticated(true);
+        // If user is already VIP member, redirect to VIP member page
+        if (data.user.isVipMember) {
+          setLocation("/vip-member");
+          return;
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
     } catch (error) {
       setIsAuthenticated(false);
     }
