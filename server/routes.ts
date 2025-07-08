@@ -347,11 +347,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // VIP Subscription endpoints
   app.post("/api/stripe/create-subscription", async (req, res) => {
     try {
-      if (!req.isAuthenticated?.()) {
+      if (!req.session.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const user = req.user;
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
       
       // Check if user already has active VIP membership
       if (user.isVipMember && user.subscriptionStatus === 'active') {
@@ -401,11 +404,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cancel subscription
   app.post("/api/stripe/cancel-subscription", async (req, res) => {
     try {
-      if (!req.isAuthenticated?.()) {
+      if (!req.session.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const user = req.user;
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
       
       if (!user.stripeSubscriptionId) {
         return res.status(400).json({ message: "No active subscription found" });

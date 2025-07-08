@@ -30,11 +30,13 @@ export default function VipMember() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading } = useQuery<UserData>({
+  const { data: userData, isLoading } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  const user = userData?.user;
 
   const cancelSubscriptionMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/stripe/cancel-subscription"),
