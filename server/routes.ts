@@ -469,6 +469,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // UNIX 秒(number) と ISO8601 文字列(string) の両方を安全に Date | null に変換する
+  const toDate = (ts: number | string | null | undefined) => {
+    if (!ts) return null;                     // null / undefined 対策
+    return typeof ts === 'number'
+      ? new Date(ts * 1000)                   // 旧 API の秒 → ミリ秒
+      : new Date(ts);                         // 新 API の ISO 文字列
+  };
+  
   // Stripe webhooks
   app.post("/api/stripe/webhook", async (req, res) => {
     console.log('Webhook received:', {
@@ -533,7 +541,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateUserSubscriptionInfo(userForUpdate.id, {
               subscriptionStatus: updatedSubscription.status,
               subscriptionCancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
-              subscriptionCurrentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
+              // 旧）subscriptionCurrentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
+              // 新）数値でも文字列でも安全に変換
+              subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
               subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount / 100).toString(),
             });
           }
