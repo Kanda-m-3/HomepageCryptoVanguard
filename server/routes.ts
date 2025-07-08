@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get current Discord user info
+  // Get current Discord user info with subscription details
   app.get("/api/auth/user", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -176,7 +176,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ user: null });
       }
 
-      res.json({ user });
+      let subscriptionInfo = null;
+
+      // Fetch subscription details from Stripe if user has a subscription
+      if (user.stripeSubscriptionId) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          subscriptionInfo = {
+            nextPaymentDate: new Date(subscription.current_period_end * 1000).toISOString(),
+            nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
+            serviceEndDate: subscription.cancel_at_period_end ? 
+              new Date(subscription.current_period_end * 1000).toISOString() : null,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            status: subscription.status,
+          };
+        } catch (stripeError) {
+          console.error('Error fetching subscription from Stripe:', stripeError);
+        }
+      }
+
+      res.json({ 
+        user: {
+          ...user,
+          subscriptionInfo
+        }
+      });
     } catch (error) {
       console.error('Error getting user:', error);
       res.json({ user: null });
@@ -317,6 +341,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res
         .status(500)
         .json({ message: "Error confirming purchase: " + error.message });
+    }
+  });
+
+  // VIP Subscription endpoints
+  app.post("/api/stripe/create-subscription", async (req, res) => {
+    try {
+      if (!req.isAuthenticated?.()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const user = req.user;
+      
+      // Check if user already has active VIP membership
+      if (user.isVipMember && user.subscriptionStatus === 'active') {
+        return res.json({ redirectTo: '/vip-member' });
+      }
+
+      // Check if user already has a Stripe customer
+      let stripeCustomer;
+      if (user.stripeCustomerId) {
+        stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
+      } else {
+        stripeCustomer = await stripe.customers.create({
+          email: user.email || `${user.username}@example.com`,
+          metadata: {
+            userId: user.id.toString(),
+            discordId: user.discordId || '',
+          },
+        });
+        await storage.updateStripeCustomerId(user.id, stripeCustomer.id);
+      }
+
+      // Create checkout session for VIP membership subscription
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomer.id,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: "price_1Ri54QP8o8opCBObRxwWJESR", // VIP Membership Price ID
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${req.protocol}://${req.get('host')}/vip-member?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/vip-community?canceled=true`,
+        metadata: {
+          userId: user.id.toString(),
+        },
+      });
+
+      res.json({ checkoutUrl: session.url });
+    } catch (error: any) {
+      console.error('Error creating subscription:', error);
+      res.status(500).json({ message: "Error creating subscription: " + error.message });
+    }
+  });
+
+  // Cancel subscription
+  app.post("/api/stripe/cancel-subscription", async (req, res) => {
+    try {
+      if (!req.isAuthenticated?.()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const user = req.user;
+      
+      if (!user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+
+      // Update subscription to cancel at period end
+      const subscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Update user subscription info
+      await storage.updateUserSubscriptionInfo(user.id, {
+        subscriptionCancelAtPeriodEnd: true,
+        subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      });
+
+      res.json({ success: true, subscription });
+    } catch (error: any) {
+      console.error('Error canceling subscription:', error);
+      res.status(500).json({ message: "Error canceling subscription: " + error.message });
+    }
+  });
+
+  // Stripe webhooks
+  app.post("/api/stripe/webhook", async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err: any) {
+      console.log(`Webhook signature verification failed.`, err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          const session = event.data.object;
+          const userId = parseInt(session.metadata.userId);
+          
+          if (session.mode === 'subscription') {
+            const subscription = await stripe.subscriptions.retrieve(session.subscription);
+            
+            await storage.updateUserSubscriptionInfo(userId, {
+              stripeSubscriptionId: subscription.id,
+              subscriptionStatus: subscription.status,
+              subscriptionCancelAtPeriodEnd: subscription.cancel_at_period_end,
+              subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount / 100).toString(),
+              isVipMember: true,
+            });
+          }
+          break;
+
+        case 'customer.subscription.updated':
+          const updatedSubscription = event.data.object;
+          const customer = await stripe.customers.retrieve(updatedSubscription.customer);
+          const userForUpdate = await storage.getUserByUsername(customer.metadata?.userId || '');
+          
+          if (userForUpdate) {
+            await storage.updateUserSubscriptionInfo(userForUpdate.id, {
+              subscriptionStatus: updatedSubscription.status,
+              subscriptionCancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
+              subscriptionCurrentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
+              subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount / 100).toString(),
+            });
+          }
+          break;
+
+        case 'customer.subscription.deleted':
+          const deletedSubscription = event.data.object;
+          const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer);
+          const userForDeletion = await storage.getUserByUsername(deletedCustomer.metadata?.userId || '');
+          
+          if (userForDeletion) {
+            await storage.updateUserSubscriptionInfo(userForDeletion.id, {
+              subscriptionStatus: 'canceled',
+              isVipMember: false,
+            });
+          }
+          break;
+
+        case 'invoice.payment_failed':
+          const failedInvoice = event.data.object;
+          const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer);
+          const userForFailure = await storage.getUserByUsername(failedCustomer.metadata?.userId || '');
+          
+          if (userForFailure) {
+            await storage.updateUserSubscriptionInfo(userForFailure.id, {
+              subscriptionStatus: 'past_due',
+            });
+          }
+          break;
+
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 

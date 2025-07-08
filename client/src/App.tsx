@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import Home from "@/pages/Home";
 import Discord from "@/pages/Discord";
 import VipCommunity from "@/pages/VipCommunity";
+import VipMember from "@/pages/VipMember";
 import AnalyticalReports from "@/pages/AnalyticalReports";
 import Checkout from "@/pages/Checkout";
 import TermsOfService from "@/pages/TermsOfService";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/discord" component={Discord} />
       <Route path="/vip" component={VipCommunity} />
       <Route path="/vip-community" component={VipCommunity} />
+      <Route path="/vip-member" component={VipMember} />
       <Route path="/reports" component={AnalyticalReports} />
       <Route path="/checkout/:reportId" component={Checkout} />
       <Route path="/terms-of-service" component={TermsOfService} />
