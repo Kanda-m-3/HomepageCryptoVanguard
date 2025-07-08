@@ -197,6 +197,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // UNIX 秒(number) と ISO8601 文字列(string) の両方を安全に Date | null に変換する
+  const toDate = (ts: number | string | null | undefined) => {
+    if (!ts) return null;                          // null / undefined
+    const d = typeof ts === 'number'
+      ? new Date(ts * 1000)                        // 旧 API: 秒 → ms
+      : new Date(ts);                              // 新 API: ISO 文字列
+    return isNaN(d.getTime()) ? null : d;          // NaN → null
+  };
+
   // Get current Discord user info with subscription details
   app.get("/api/auth/user", async (req, res) => {
     try {
@@ -217,10 +226,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
           subscriptionInfo = {
-            nextPaymentDate: new Date(subscription.current_period_end * 1000).toISOString(),
+            // 旧）nextPaymentDate: new Date(subscription.current_period_end * 1000).toISOString(),
+            // 新）数値でも文字列でも安全に変換
+            nextPaymentDate: toDate(subscription.current_period_end).toISOString(),
             nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
-            serviceEndDate: subscription.cancel_at_period_end ? 
-              new Date(subscription.current_period_end * 1000).toISOString() : null,
+            // 旧）serviceEndDate: subscription.cancel_at_period_end ? 
+            //  new Date(subscription.current_period_end * 1000).toISOString() : null,
+            // 新）数値でも文字列でも安全に変換
+            serviceEndDate: subscription.cancel_at_period_end ?
+              toDate(subscription.current_period_end).toISOString() : null
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
             status: subscription.status,
           };
@@ -459,7 +473,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user subscription info
       await storage.updateUserSubscriptionInfo(user.id, {
         subscriptionCancelAtPeriodEnd: true,
-        subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        // 旧）subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        // 新）数値でも文字列でも安全に変換
+        subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end)
       });
 
       res.json({ success: true, subscription });
@@ -469,15 +485,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // UNIX 秒(number) と ISO8601 文字列(string) の両方を安全に Date | null に変換する
-  const toDate = (ts: number | string | null | undefined) => {
-    if (!ts) return null;                          // null / undefined
-    const d = typeof ts === 'number'
-      ? new Date(ts * 1000)                        // 旧 API: 秒 → ms
-      : new Date(ts);                              // 新 API: ISO 文字列
-    return isNaN(d.getTime()) ? null : d;          // NaN → null
-  };
-  
   // Stripe webhooks
   app.post("/api/stripe/webhook", async (req, res) => {
     console.log('Webhook received:', {
@@ -520,7 +527,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               stripeSubscriptionId: subscription.id,
               subscriptionStatus: subscription.status,
               subscriptionCancelAtPeriodEnd: subscription.cancel_at_period_end,
-              subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              // 旧）subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              // 新）数値でも文字列でも安全に変換
+              subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
               subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount / 100).toString(),
               isVipMember: true,
             });
