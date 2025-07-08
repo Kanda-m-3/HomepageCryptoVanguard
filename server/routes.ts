@@ -471,10 +471,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // UNIX 秒(number) と ISO8601 文字列(string) の両方を安全に Date | null に変換する
   const toDate = (ts: number | string | null | undefined) => {
-    if (!ts) return null;                     // null / undefined 対策
-    return typeof ts === 'number'
-      ? new Date(ts * 1000)                   // 旧 API の秒 → ミリ秒
-      : new Date(ts);                         // 新 API の ISO 文字列
+    if (!ts) return null;                          // null / undefined
+    const d = typeof ts === 'number'
+      ? new Date(ts * 1000)                        // 旧 API: 秒 → ms
+      : new Date(ts);                              // 新 API: ISO 文字列
+    return isNaN(d.getTime()) ? null : d;          // NaN → null
   };
   
   // Stripe webhooks
