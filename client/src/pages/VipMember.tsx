@@ -42,15 +42,15 @@ export default function VipMember() {
     mutationFn: () => apiRequest("POST", "/api/stripe/cancel-subscription"),
     onSuccess: () => {
       toast({
-        title: "解約リクエスト完了",
-        description: "サブスクリプションの解約リクエストが正常に処理されました。",
+        title: "Cancellation Request Completed",
+        description: "Your subscription cancellation request has been processed successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     },
     onError: () => {
       toast({
-        title: "エラー",
-        description: "解約リクエストの処理中にエラーが発生しました。",
+        title: "Error",
+        description: "An error occurred while processing your cancellation request.",
         variant: "destructive",
       });
     },
@@ -63,8 +63,8 @@ export default function VipMember() {
     
     if (paymentStatus === 'success') {
       toast({
-        title: "決済完了",
-        description: "VIPメンバーシップの登録が完了しました！",
+        title: "Payment Completed",
+        description: "Your VIP membership registration has been completed!",
       });
       // Clean up URL
       window.history.replaceState({}, '', '/vip-member');
@@ -88,7 +88,7 @@ export default function VipMember() {
   }
 
   const handleCancelSubscription = () => {
-    if (window.confirm("本当にVIPメンバーシップを解約しますか？")) {
+    if (window.confirm("Are you sure you want to cancel your VIP membership?")) {
       cancelSubscriptionMutation.mutate();
     }
   };
@@ -98,128 +98,107 @@ export default function VipMember() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-crypto-gold/10 rounded-full flex items-center justify-center">
-              <Crown className="h-10 w-10 text-crypto-gold" />
-            </div>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Crown className="h-8 w-8 text-crypto-gold" />
+            <h1 className="text-4xl font-bold text-neutral-900">VIP Member Dashboard</h1>
+            <Crown className="h-8 w-8 text-crypto-gold" />
           </div>
-          <h1 className="text-4xl font-bold text-neutral-900 mb-4">VIPメンバーダッシュボード</h1>
-          <p className="text-xl text-neutral-600">プレミアムコミュニティへようこそ</p>
+          <p className="text-lg text-neutral-600">
+            Welcome to your exclusive VIP member area
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* User Profile Card */}
-          <Card className="bg-white shadow-lg">
+        {/* User Profile Card */}
+        <div className="grid gap-8 lg:grid-cols-2">
+          <Card className="border-crypto-gold border-2">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <User className="h-6 w-6 text-crypto-gold" />
-                プロフィール情報
+              <CardTitle className="flex items-center gap-2 text-crypto-gold">
+                <User className="h-5 w-5" />
+                Profile Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                {user.discordAvatar ? (
-                  <img
-                    src={`https://cdn.discordapp.com/avatars/${user.discordUsername}/${user.discordAvatar}.png`}
+              <div className="flex items-center gap-3">
+                {user.discordAvatar && (
+                  <img 
+                    src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.discordAvatar}.png`}
                     alt="Discord Avatar"
-                    className="w-16 h-16 rounded-full"
+                    className="w-12 h-12 rounded-full"
                   />
-                ) : (
-                  <div className="w-16 h-16 bg-crypto-gold/10 rounded-full flex items-center justify-center">
-                    <User className="h-8 w-8 text-crypto-gold" />
-                  </div>
                 )}
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900">{user.discordUsername}</h3>
-                  <Badge variant="secondary" className="bg-crypto-gold/10 text-crypto-gold">
-                    <Crown className="h-3 w-3 mr-1" />
-                    VIPメンバー
-                  </Badge>
+                  <p className="font-semibold text-neutral-900">{user.username}</p>
+                  <p className="text-sm text-neutral-600">Discord: {user.discordUsername}</p>
                 </div>
-              </div>
-              
-              <div className="pt-4 border-t border-neutral-200">
-                <h4 className="font-medium text-neutral-900 mb-2">アクセス権限</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                    <span className="text-sm text-neutral-600">Discord VIPチャンネル</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                    <span className="text-sm text-neutral-600">専門的なレポート配信</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                    <span className="text-sm text-neutral-600">プレミアムサポート</span>
-                  </div>
-                </div>
+                <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
+                  <Crown className="h-3 w-3 mr-1" />
+                  VIP Member
+                </Badge>
               </div>
             </CardContent>
           </Card>
 
-          {/* Subscription Info Card */}
-          <Card className="bg-white shadow-lg">
+          {/* Subscription Info */}
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <CreditCard className="h-6 w-6 text-crypto-gold" />
-                サブスクリプション情報
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Subscription Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {user.subscriptionInfo ? (
-                user.subscriptionInfo.error ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-red-700 mb-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="font-medium">サブスクリプション情報の取得エラー</span>
-                    </div>
-                    <p className="text-sm text-red-600">
-                      サブスクリプション情報を取得できませんでした。しばらく時間をおいてからページを再読み込みしてください。
-                    </p>
+              {user.subscriptionInfo?.error ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-red-700 mb-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">Subscription Information Error</span>
                   </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-neutral-600">ステータス</label>
-                        <p className="text-lg font-semibold text-neutral-900 capitalize">
-                          {user.subscriptionInfo.status === 'active' ? 'アクティブ' : user.subscriptionInfo.status}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-neutral-600">次回請求額</label>
-                        <p className="text-lg font-semibold text-neutral-900">
-                          ¥{user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}
-                        </p>
-                      </div>
+                  <p className="text-sm text-red-600">
+                    Could not retrieve subscription information. Please wait a moment and reload the page.
+                  </p>
+                </div>
+              ) : user.subscriptionInfo ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-neutral-600">Status</label>
+                      <p className="text-lg font-semibold text-neutral-900 capitalize">
+                        {user.subscriptionInfo.status === 'active' ? 'Active' : user.subscriptionInfo.status}
+                      </p>
                     </div>
-                    
-                    {user.subscriptionInfo.nextPaymentDate ? (
-                      <div>
-                        <label className="text-sm font-medium text-neutral-600">次回請求日</label>
-                        <p className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(user.subscriptionInfo.nextPaymentDate).toLocaleDateString('ja-JP')}
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="text-sm font-medium text-neutral-600">次回請求日</label>
-                        <p className="text-lg font-semibold text-neutral-900 text-red-600">
-                          情報取得エラー
-                        </p>
-                      </div>
-                    )}
+                    <div>
+                      <label className="text-sm font-medium text-neutral-600">Next Payment Amount</label>
+                      <p className="text-lg font-semibold text-neutral-900">
+                        ${user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {user.subscriptionInfo.nextPaymentDate ? (
+                    <div>
+                      <label className="text-sm font-medium text-neutral-600">Next Payment Date</label>
+                      <p className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(user.subscriptionInfo.nextPaymentDate).toLocaleDateString('en-US')}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-sm font-medium text-neutral-600">Next Payment Date</label>
+                      <p className="text-lg font-semibold text-neutral-900 text-red-600">
+                        Information retrieval error
+                      </p>
+                    </div>
+                  )}
 
                   {user.subscriptionInfo.cancelAtPeriodEnd && user.subscriptionInfo.serviceEndDate && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 text-amber-700 mb-2">
                         <AlertTriangle className="h-4 w-4" />
-                        <span className="font-medium">解約予定</span>
+                        <span className="font-medium">Cancellation Scheduled</span>
                       </div>
                       <p className="text-sm text-amber-600">
-                        サービス終了日: {new Date(user.subscriptionInfo.serviceEndDate).toLocaleDateString('ja-JP')}
+                        Service End Date: {new Date(user.subscriptionInfo.serviceEndDate).toLocaleDateString('en-US')}
                       </p>
                     </div>
                   )}
@@ -231,13 +210,13 @@ export default function VipMember() {
                       onClick={handleCancelSubscription}
                       disabled={cancelSubscriptionMutation.isPending}
                     >
-                      {cancelSubscriptionMutation.isPending ? "処理中..." : "VIPメンバー解約"}
+                      {cancelSubscriptionMutation.isPending ? "Processing..." : "Cancel VIP Membership"}
                     </Button>
                   )}
                 </>
               ) : (
                 <div className="text-center text-neutral-600">
-                  <p>サブスクリプション情報を読み込み中...</p>
+                  <p>Loading subscription info...</p>
                 </div>
               )}
             </CardContent>
@@ -248,20 +227,20 @@ export default function VipMember() {
         <Card className="mt-8 bg-gradient-to-r from-crypto-gold to-yellow-400 text-neutral-900">
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold mb-4 text-center">
-              VIPメンバー限定特典をお楽しみください
+              Enjoy Your VIP Member Exclusive Benefits
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div>
-                <h3 className="font-semibold mb-2">専門分析レポート</h3>
-                <p className="text-sm opacity-90">市場動向の詳細分析と投資戦略</p>
+                <h3 className="font-semibold mb-2">Professional Analysis Reports</h3>
+                <p className="text-sm opacity-90">Detailed market analysis and investment strategies</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">VIP限定チャンネル</h3>
-                <p className="text-sm opacity-90">専門家との直接対話とディスカッション</p>
+                <h3 className="font-semibold mb-2">VIP Exclusive Channels</h3>
+                <p className="text-sm opacity-90">Direct dialogue and discussions with experts</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">優先サポート</h3>
-                <p className="text-sm opacity-90">質問への迅速な回答とサポート</p>
+                <h3 className="font-semibold mb-2">Priority Support</h3>
+                <p className="text-sm opacity-90">Quick responses to questions and support</p>
               </div>
             </div>
           </CardContent>
