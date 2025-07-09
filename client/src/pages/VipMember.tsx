@@ -132,7 +132,7 @@ export default function VipMember() {
                 </div>
                 <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
                   <Crown className="h-3 w-3 mr-1" />
-                  VIP 　　　メンバー
+                  VIP 　メンバー
                 </Badge>
               </div>
             </CardContent>
@@ -184,7 +184,7 @@ export default function VipMember() {
                     </div>
                   ) : (
                     <div>
-                      <label className="text-sm font-medium text-neutral-600">Next Payment Date</label>
+                      <label className="text-sm font-medium text-neutral-600">次回課金日</label>
                       <p className="text-lg font-semibold text-neutral-900 text-red-600">
                         Information retrieval error
                       </p>
@@ -198,7 +198,7 @@ export default function VipMember() {
                         <span className="font-medium">Cancellation Scheduled</span>
                       </div>
                       <p className="text-sm text-amber-600">
-                        Service End Date: {new Date(user.subscriptionInfo.serviceEndDate).toLocaleDateString('en-US')}
+                        サービス終了日: {new Date(user.subscriptionInfo.serviceEndDate).toLocaleDateString('en-US')}
                       </p>
                     </div>
                   )}
