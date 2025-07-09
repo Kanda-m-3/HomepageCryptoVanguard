@@ -100,11 +100,11 @@ export default function VipMember() {
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Crown className="h-8 w-8 text-crypto-gold" />
-            <h1 className="text-4xl font-bold text-neutral-900">VIP Member Dashboard</h1>
+            <h1 className="text-4xl font-bold text-neutral-900">VIPメンバー 管理ページ</h1>
             <Crown className="h-8 w-8 text-crypto-gold" />
           </div>
           <p className="text-lg text-neutral-600">
-            Welcome to your exclusive VIP member area
+            あなたはCrypto VanguardのVIPメンバーです
           </p>
         </div>
 
@@ -227,20 +227,20 @@ export default function VipMember() {
         <Card className="mt-8 bg-gradient-to-r from-crypto-gold to-yellow-400 text-neutral-900">
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold mb-4 text-center">
-              Enjoy Your VIP Member Exclusive Benefits
+              DiscordサーバーのVIP限定チャンネルにアクセス
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div>
-                <h3 className="font-semibold mb-2">Professional Analysis Reports</h3>
-                <p className="text-sm opacity-90">Detailed market analysis and investment strategies</p>
+                <h3 className="font-semibold mb-2">市場分析チェット</h3>
+                <p className="text-sm opacity-90">主要な暗号資産の市場分析を配信、VIPメンバーで意見交換</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">VIP Exclusive Channels</h3>
-                <p className="text-sm opacity-90">Direct dialogue and discussions with experts</p>
+                <h3 className="font-semibold mb-2">プレセール・ステーキング情報</h3>
+                <p className="text-sm opacity-90">注目のプレセール、ステーキングサービス情報を配信</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">Priority Support</h3>
-                <p className="text-sm opacity-90">Quick responses to questions and support</p>
+                <h3 className="font-semibold mb-2">独占レポート</h3>
+                <p className="text-sm opacity-90">新規プロジェクト、暗号資産関連の分析を定期レポート</p>
               </div>
             </div>
           </CardContent>
