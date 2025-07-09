@@ -88,7 +88,7 @@ export default function VipMember() {
   }
 
   const handleCancelSubscription = () => {
-    if (window.confirm("Are you sure you want to cancel your VIP membership?")) {
+    if (window.confirm("本当にVIPメンバーを解約されますか?")) {
       cancelSubscriptionMutation.mutate();
     }
   };
@@ -194,7 +194,7 @@ export default function VipMember() {
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 text-amber-700 mb-2">
                         <AlertTriangle className="h-4 w-4" />
-                        <span className="font-medium">Cancellation Scheduled</span>
+                        <span className="font-medium">解約スケジュール済み</span>
                       </div>
                       <p className="text-sm text-amber-600">
                         サービス終了日: {new Date(user.subscriptionInfo.serviceEndDate).toLocaleDateString('en-US')}
