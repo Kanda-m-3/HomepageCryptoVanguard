@@ -210,7 +210,7 @@ export default function VipMember() {
                       onClick={handleCancelSubscription}
                       disabled={cancelSubscriptionMutation.isPending}
                     >
-                      {cancelSubscriptionMutation.isPending ? "Processing..." : "Cancel VIP Membership"}
+                      {cancelSubscriptionMutation.isPending ? "Processing..." : "VIPメンバーを解約"}
                     </Button>
                   )}
                 </>
