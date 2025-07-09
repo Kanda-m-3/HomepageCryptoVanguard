@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error('Invalid subscription period end date:', subscription.current_period_end);
             subscriptionInfo = {
               nextPaymentDate: null,
-              nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
+              nextPaymentAmount: subscription.items.data[0].price.unit_amount,
               serviceEndDate: null,
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
               status: subscription.status,
@@ -548,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // 旧）subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
               // 新）数値でも文字列でも安全に変換
               subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
-              subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount / 100).toString(),
+              subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount).toString(),
               isVipMember: true,
             });
 
@@ -570,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subscriptionStatus: updatedSubscription.status,
               subscriptionCancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
               subscriptionCurrentPeriodEnd: toDate(updatedSubscription.current_period_end),
-              subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount / 100).toString(),
+              subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount).toString(),
             });
           }
           break;
