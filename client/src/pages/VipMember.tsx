@@ -114,7 +114,7 @@ export default function VipMember() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-crypto-gold">
                 <User className="h-5 w-5" />
-                Profile Information
+                プロファイル情報
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -132,7 +132,7 @@ export default function VipMember() {
                 </div>
                 <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
                   <Crown className="h-3 w-3 mr-1" />
-                  VIP Member
+                  VIP メンバー
                 </Badge>
               </div>
             </CardContent>
@@ -143,7 +143,7 @@ export default function VipMember() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Subscription Information
+                サブスクリプション情報
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
