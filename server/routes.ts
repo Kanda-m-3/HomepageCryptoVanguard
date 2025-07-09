@@ -658,6 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           break;
+        }
             
         case 'customer.subscription.deleted':
           const deletedSubscription = event.data.object;
