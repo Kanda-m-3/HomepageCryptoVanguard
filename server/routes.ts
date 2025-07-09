@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             //  new Date(subscription.current_period_end * 1000).toISOString() : null,
             // 新）数値でも文字列でも安全に変換
             serviceEndDate: subscription.cancel_at_period_end ?
-              toDate(subscription.current_period_end).toISOString() : null,
+              toDate(subscription.current_period_end).toISOString() : null
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
             status: subscription.status,
           };
