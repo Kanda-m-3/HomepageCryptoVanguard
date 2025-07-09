@@ -132,7 +132,7 @@ export default function VipMember() {
                 </div>
                 <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
                   <Crown className="h-3 w-3 mr-1" />
-                  VIP メンバー
+                  VIP 　　　メンバー
                 </Badge>
               </div>
             </CardContent>
@@ -161,13 +161,13 @@ export default function VipMember() {
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-neutral-600">Status</label>
+                      <label className="text-sm font-medium text-neutral-600">ステータス</label>
                       <p className="text-lg font-semibold text-neutral-900 capitalize">
                         {user.subscriptionInfo.status === 'active' ? 'Active' : user.subscriptionInfo.status}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-neutral-600">Next Payment Amount</label>
+                      <label className="text-sm font-medium text-neutral-600">次回課金額</label>
                       <p className="text-lg font-semibold text-neutral-900">
                         ${user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}
                       </p>
@@ -176,7 +176,7 @@ export default function VipMember() {
                   
                   {user.subscriptionInfo.nextPaymentDate ? (
                     <div>
-                      <label className="text-sm font-medium text-neutral-600">Next Payment Date</label>
+                      <label className="text-sm font-medium text-neutral-600">次回課金日</label>
                       <p className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         {new Date(user.subscriptionInfo.nextPaymentDate).toLocaleDateString('en-US')}
