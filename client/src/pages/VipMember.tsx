@@ -132,7 +132,7 @@ export default function VipMember() {
                 </div>
                 <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
                   <Crown className="h-3 w-3 mr-1" />
-                  VIP 　メンバー
+                  VIPメンバー
                 </Badge>
               </div>
             </CardContent>
@@ -168,8 +168,7 @@ export default function VipMember() {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-neutral-600">次回課金額</label>
-                      <p className="text-lg font-semibold text-neutral-900">
-                        ${user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}
+                      <p className="text-lg font-semibold text-neutral-900">{user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}円
                       </p>
                     </div>
                   </div>

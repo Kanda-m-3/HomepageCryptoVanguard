@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (nextPaymentDate) {
             subscriptionInfo = {
               nextPaymentDate: nextPaymentDate.toISOString(),
-              nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
+              nextPaymentAmount: subscription.items.data[0].price.unit_amount,
               serviceEndDate: subscription.cancel_at_period_end ?
                 nextPaymentDate.toISOString() : null,
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
