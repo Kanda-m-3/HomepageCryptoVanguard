@@ -9,6 +9,14 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User>;
   updateStripeCustomerId(userId: number, customerId: string): Promise<User>;
+  updateUserSubscriptionInfo(userId: number, subscriptionData: {
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: string;
+    subscriptionCancelAtPeriodEnd?: boolean;
+    subscriptionCurrentPeriodEnd?: Date;
+    subscriptionNextPaymentAmount?: string;
+    isVipMember?: boolean;
+  }): Promise<User>;
   
   getAllReports(): Promise<AnalyticalReport[]>;
   getReport(id: number): Promise<AnalyticalReport | undefined>;
@@ -100,6 +108,10 @@ export class MemStorage implements IStorage {
       email: insertUser.email ?? null,
       stripeCustomerId: null,
       stripeSubscriptionId: null,
+      subscriptionStatus: null,
+      subscriptionCancelAtPeriodEnd: null,
+      subscriptionCurrentPeriodEnd: null,
+      subscriptionNextPaymentAmount: null,
       discordId: null,
       discordUsername: null,
       discordAvatar: null,
@@ -139,6 +151,10 @@ export class MemStorage implements IStorage {
         email: discordUser.email ?? null,
         stripeCustomerId: null,
         stripeSubscriptionId: null,
+        subscriptionStatus: null,
+        subscriptionCancelAtPeriodEnd: null,
+        subscriptionCurrentPeriodEnd: null,
+        subscriptionNextPaymentAmount: null,
         discordId: discordUser.discordId,
         discordUsername: discordUser.discordUsername ?? null,
         discordAvatar: discordUser.discordAvatar ?? null,
@@ -156,6 +172,31 @@ export class MemStorage implements IStorage {
       throw new Error("User not found");
     }
     const updatedUser = { ...user, stripeCustomerId: customerId };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserSubscriptionInfo(userId: number, subscriptionData: {
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: string;
+    subscriptionCancelAtPeriodEnd?: boolean;
+    subscriptionCurrentPeriodEnd?: Date;
+    subscriptionNextPaymentAmount?: string;
+    isVipMember?: boolean;
+  }): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const updatedUser = { 
+      ...user, 
+      stripeSubscriptionId: subscriptionData.stripeSubscriptionId ?? user.stripeSubscriptionId,
+      subscriptionStatus: subscriptionData.subscriptionStatus ?? user.subscriptionStatus,
+      subscriptionCancelAtPeriodEnd: subscriptionData.subscriptionCancelAtPeriodEnd ?? user.subscriptionCancelAtPeriodEnd,
+      subscriptionCurrentPeriodEnd: subscriptionData.subscriptionCurrentPeriodEnd ?? user.subscriptionCurrentPeriodEnd,
+      subscriptionNextPaymentAmount: subscriptionData.subscriptionNextPaymentAmount ?? user.subscriptionNextPaymentAmount,
+      isVipMember: subscriptionData.isVipMember ?? user.isVipMember,
+    };
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -281,6 +322,29 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ stripeCustomerId: customerId })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserSubscriptionInfo(userId: number, subscriptionData: {
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: string;
+    subscriptionCancelAtPeriodEnd?: boolean;
+    subscriptionCurrentPeriodEnd?: Date;
+    subscriptionNextPaymentAmount?: string;
+    isVipMember?: boolean;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        stripeSubscriptionId: subscriptionData.stripeSubscriptionId,
+        subscriptionStatus: subscriptionData.subscriptionStatus,
+        subscriptionCancelAtPeriodEnd: subscriptionData.subscriptionCancelAtPeriodEnd,
+        subscriptionCurrentPeriodEnd: subscriptionData.subscriptionCurrentPeriodEnd,
+        subscriptionNextPaymentAmount: subscriptionData.subscriptionNextPaymentAmount,
+        isVipMember: subscriptionData.isVipMember,
+      })
       .where(eq(users.id, userId))
       .returning();
     return user;

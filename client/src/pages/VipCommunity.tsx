@@ -6,12 +6,39 @@ import { Crown, Target, TrendingUp, Users, Zap, Lock, CheckCircle, ArrowRight, A
 import { useLocation } from "wouter";
 import DiscordJoinFlow from "@/components/DiscordJoinFlow";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function VipCommunity() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showJoinFlow, setShowJoinFlow] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { toast } = useToast();
+
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const createSubscriptionMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/stripe/create-subscription"),
+    onSuccess: async (data) => {
+      const response = await data.json();
+      if (response.redirectTo) {
+        setLocation(response.redirectTo);
+      } else if (response.checkoutUrl) {
+        window.location.href = response.checkoutUrl;
+      }
+    },
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "VIPメンバーへ登録できませんでした",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     // Check URL parameters for authentication state
@@ -52,7 +79,16 @@ export default function VipCommunity() {
     try {
       const response = await fetch('/api/auth/user');
       const data = await response.json();
-      setIsAuthenticated(!!data.user);
+      if (data.user) {
+        setIsAuthenticated(true);
+        // If user is already VIP member, redirect to VIP member page
+        if (data.user.isVipMember) {
+          setLocation("/vip-member");
+          return;
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
     } catch (error) {
       setIsAuthenticated(false);
     }
@@ -67,6 +103,25 @@ export default function VipCommunity() {
   const handleBackFromJoinFlow = () => {
     setShowJoinFlow(false);
     setIsAuthenticated(false);
+  };
+
+  const handleVipRegistration = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "認証が必要",
+        description: "VIPメンバーに登録するには、まずDiscordで認証してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user is already VIP member
+    if (user?.isVipMember) {
+      setLocation("/vip-member");
+      return;
+    }
+
+    createSubscriptionMutation.mutate();
   };
 
   // Show Discord join flow if user is not a server member
@@ -230,8 +285,11 @@ export default function VipCommunity() {
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />いつでもキャンセル可能</li>
                   <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-500 mr-2" />Stripeによる安全な支払い</li>
                 </ul>
-                <Button className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900" disabled>
-                  準備中
+                <Button 
+                  className="w-full bg-crypto-gold hover:bg-yellow-400 text-neutral-900"
+                  onClick={handleVipRegistration}
+                >
+                  登録
                 </Button>
               </CardContent>
             </Card>

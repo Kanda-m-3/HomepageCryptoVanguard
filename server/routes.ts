@@ -27,6 +27,40 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
   throw new Error("Missing Discord OAuth2 credentials");
 }
 
+// Discord Bot Token for role management (requires bot permissions)
+const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+const DISCORD_SERVER_ID = "1357437337537220719"; // Crypto Vanguard server ID
+const VIP_ROLE_ID = process.env.DISCORD_VIP_ROLE_ID; // VIP role ID (needs to be set)
+
+// Function to assign/remove VIP role
+async function assignDiscordVipRole(discordUserId: string, assign: boolean) {
+  if (!DISCORD_BOT_TOKEN || !VIP_ROLE_ID) {
+    console.log('Discord bot token or VIP role ID not configured, skipping role assignment');
+    return;
+  }
+
+  try {
+    const url = `https://discord.com/api/guilds/${DISCORD_SERVER_ID}/members/${discordUserId}/roles/${VIP_ROLE_ID}`;
+    const method = assign ? 'PUT' : 'DELETE';
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      console.log(`${assign ? 'Assigned' : 'Removed'} VIP role for Discord user: ${discordUserId}`);
+    } else {
+      console.error(`Failed to ${assign ? 'assign' : 'remove'} VIP role:`, response.status, await response.text());
+    }
+  } catch (error) {
+    console.error('Error managing Discord VIP role:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Debug endpoint to check Discord OAuth configuration
   app.get("/api/auth/discord/config", (req, res) => {
@@ -163,7 +197,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get current Discord user info
+  // UNIX 秒(number) と ISO8601 文字列(string) の両方を安全に Date | null に変換する
+  const toDate = (ts: number | string | null | undefined) => {
+    if (!ts) return null;                          // null / undefined
+    const d = typeof ts === 'number'
+      ? new Date(ts * 1000)                        // 旧 API: 秒 → ms
+      : new Date(ts);                              // 新 API: ISO 文字列
+    return isNaN(d.getTime()) ? null : d;          // NaN → null
+  };
+
+  // Get current Discord user info with subscription details
   app.get("/api/auth/user", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -176,7 +219,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ user: null });
       }
 
-      res.json({ user });
+      let subscriptionInfo = null;
+
+      // Fetch subscription details from Stripe if user has a subscription
+      if (user.stripeSubscriptionId) {
+        try {
+        //  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        //  const nextPaymentDate = toDate(subscription.current_period_end);
+          const subscription = await stripe.subscriptions.retrieve(
+            user.stripeSubscriptionId,
+            { expand: ['latest_invoice'] }          // ★ 追加
+          );
+
+          // current_period_end が null の場合は latest_invoice.period_end を代用
+          const periodEndRaw =
+            subscription.current_period_end ??
+            (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
+          const nextPaymentDate = toDate(periodEndRaw);
+          
+          if (nextPaymentDate) {
+            subscriptionInfo = {
+          //    nextPaymentDate: nextPaymentDate.toISOString(),
+          //    nextPaymentAmount: subscription.items.data[0].price.unit_amount,
+              nextPaymentDate: nextPaymentDate.toISOString(),
+              nextPaymentAmount:
+                subscription.latest_invoice
+                  ? (subscription.latest_invoice.amount_due / (subscription.currency === 'jpy' ? 1 : 1))
+                  : (subscription.items.data[0].price.unit_amount / (subscription.currency === 'jpy' ? 1 : 1)),
+
+              serviceEndDate: subscription.cancel_at_period_end ?
+                nextPaymentDate.toISOString() : null,
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+              status: subscription.status,
+            };
+          } else {
+            console.error('Invalid subscription period end date:', subscription.current_period_end);
+            subscriptionInfo = {
+              nextPaymentDate: null,
+              nextPaymentAmount: subscription.items.data[0].price.unit_amount,
+              serviceEndDate: null,
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+              status: subscription.status,
+            };
+          }
+        } catch (stripeError) {
+          console.error('Error fetching subscription from Stripe:', stripeError);
+          console.error('Subscription ID:', user.stripeSubscriptionId);
+          // Set a fallback subscription info to indicate error
+          subscriptionInfo = {
+            error: true,
+            nextPaymentDate: null,
+            nextPaymentAmount: 0,
+            serviceEndDate: null,
+            cancelAtPeriodEnd: false,
+            status: 'error',
+          };
+        }
+      }
+
+      res.json({ 
+        user: {
+          ...user,
+          subscriptionInfo
+        }
+      });
     } catch (error) {
       console.error('Error getting user:', error);
       res.json({ user: null });
@@ -317,6 +423,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res
         .status(500)
         .json({ message: "Error confirming purchase: " + error.message });
+    }
+  });
+
+  // VIP Subscription endpoints
+  app.post("/api/stripe/create-subscription", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      // Check if user already has active VIP membership
+      if (user.isVipMember && user.subscriptionStatus === 'active') {
+        return res.json({ redirectTo: '/vip-member' });
+      }
+
+      // Check if user already has a Stripe customer
+      let stripeCustomer;
+      if (user.stripeCustomerId) {
+        stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
+      } else {
+        stripeCustomer = await stripe.customers.create({
+          email: user.email || `${user.username}@example.com`,
+          metadata: {
+            userId: user.id.toString(),
+            discordId: user.discordId || '',
+          },
+        });
+        await storage.updateStripeCustomerId(user.id, stripeCustomer.id);
+      }
+
+      // Create checkout session for VIP membership subscription
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomer.id,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: "price_1Ri54QP8o8opCBObRxwWJESR", // VIP Membership Price ID
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${req.protocol}://${req.get('host')}/vip-member?payment=success`,
+        cancel_url: `${req.protocol}://${req.get('host')}/vip-community?canceled=true`,
+        metadata: {
+          userId: user.id.toString(),
+        },
+      });
+
+      res.json({ checkoutUrl: session.url });
+    } catch (error: any) {
+      console.error('Error creating subscription:', error);
+      res.status(500).json({ message: "Error creating subscription: " + error.message });
+    }
+  });
+
+  // Cancel subscription
+  app.post("/api/stripe/cancel-subscription", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (!user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+
+      // Update subscription to cancel at period end
+      const subscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Update user subscription info
+      await storage.updateUserSubscriptionInfo(user.id, {
+        subscriptionCancelAtPeriodEnd: true,
+        // 旧）subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        // 新）数値でも文字列でも安全に変換
+        subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end)
+      });
+
+      res.json({ success: true, subscription });
+    } catch (error: any) {
+      console.error('Error canceling subscription:', error);
+      res.status(500).json({ message: "Error canceling subscription: " + error.message });
+    }
+  });
+
+  // Stripe webhooks
+  app.post("/api/stripe/webhook", async (req, res) => {
+    console.log('Webhook received:', {
+      headers: req.headers,
+      body: req.body ? 'Present' : 'Missing',
+      signature: req.headers['stripe-signature'] ? 'Present' : 'Missing'
+    });
+
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('STRIPE_WEBHOOK_SECRET environment variable is not set');
+      return res.status(500).send('Webhook secret not configured');
+    }
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+      console.log('Webhook event verified:', event.type);
+    } catch (err: any) {
+      console.error(`Webhook signature verification failed:`, err.message);
+      console.error('Expected endpoint secret:', process.env.STRIPE_WEBHOOK_SECRET ? 'Set' : 'Not set');
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    try {
+      console.log('Processing webhook event:', event.type, 'ID:', event.id);
+      
+      switch (event.type) {
+        case 'checkout.session.completed':
+          console.log('Processing checkout.session.completed');
+          const session = event.data.object;
+          const userId = parseInt(session.metadata.userId);
+          console.log('Session metadata userId:', session.metadata.userId);
+          
+          if (session.mode === 'subscription') {
+            // const subscription = await stripe.subscriptions.retrieve(session.subscription);
+            const subscription = await stripe.subscriptions.retrieve(
+              session.subscription as string,
+              { expand: ['latest_invoice'] }        // ★ 追加
+            );
+            
+            // await storage.updateUserSubscriptionInfo(userId, {
+            // period_end → current_period_end が無ければ latest_invoice.period_end
+            const periodEndRaw =
+              subscription.current_period_end ??
+              (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
+
+            await storage.updateUserSubscriptionInfo(userId, {
+              stripeSubscriptionId: subscription.id,
+              subscriptionStatus: subscription.status,
+              subscriptionCancelAtPeriodEnd: subscription.cancel_at_period_end,
+              // 旧）subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              // 新）数値でも文字列でも安全に変換
+              // subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
+              // subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount).toString(),
+              subscriptionCurrentPeriodEnd: toDate(periodEndRaw),
+              subscriptionNextPaymentAmount: (
+                subscription.latest_invoice
+                  ? subscription.latest_invoice.amount_due /
+                      (subscription.currency === 'jpy' ? 1 : 100)
+                  : subscription.items.data[0].price.unit_amount /
+                      (subscription.currency === 'jpy' ? 1 : 100)
+              ).toString(),              
+              isVipMember: true,
+            });
+
+            // Add VIP role to Discord user
+            const user = await storage.getUser(userId);
+            if (user && user.discordId) {
+              await assignDiscordVipRole(user.discordId, true);
+            }
+          }
+          break;
+
+        case 'customer.subscription.updated':
+          const updatedSubscription = event.data.object;
+          const customer = await stripe.customers.retrieve(updatedSubscription.customer);
+          const userForUpdate = await storage.getUser(parseInt(customer.metadata?.userId || '0'));
+          
+          if (userForUpdate) {
+            await storage.updateUserSubscriptionInfo(userForUpdate.id, {
+              subscriptionStatus: updatedSubscription.status,
+              subscriptionCancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
+              subscriptionCurrentPeriodEnd: toDate(updatedSubscription.current_period_end),
+              subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount).toString(),
+            });
+          }
+          break;
+
+        case 'customer.subscription.deleted':
+          const deletedSubscription = event.data.object;
+          const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer);
+          const userForDeletion = await storage.getUser(parseInt(deletedCustomer.metadata?.userId || '0'));
+          
+          if (userForDeletion) {
+            await storage.updateUserSubscriptionInfo(userForDeletion.id, {
+              subscriptionStatus: 'canceled',
+              isVipMember: false,
+            });
+
+            // Remove VIP role from Discord user
+            if (userForDeletion.discordId) {
+              await assignDiscordVipRole(userForDeletion.discordId, false);
+            }
+          }
+          break;
+
+        case 'invoice.payment_failed':
+          const failedInvoice = event.data.object;
+          const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer);
+          const userForFailure = await storage.getUser(parseInt(failedCustomer.metadata?.userId || '0'));
+          
+          if (userForFailure) {
+            await storage.updateUserSubscriptionInfo(userForFailure.id, {
+              subscriptionStatus: 'past_due',
+            });
+          }
+          break;
+
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
