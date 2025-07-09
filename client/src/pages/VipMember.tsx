@@ -168,29 +168,49 @@ export default function VipMember() {
             </CardHeader>
             <CardContent className="space-y-4">
               {user.subscriptionInfo ? (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-neutral-600">ステータス</label>
-                      <p className="text-lg font-semibold text-neutral-900 capitalize">
-                        {user.subscriptionInfo.status === 'active' ? 'アクティブ' : user.subscriptionInfo.status}
-                      </p>
+                user.subscriptionInfo.error ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-red-700 mb-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="font-medium">サブスクリプション情報の取得エラー</span>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-neutral-600">次回請求額</label>
-                      <p className="text-lg font-semibold text-neutral-900">
-                        ¥{user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-neutral-600">次回請求日</label>
-                    <p className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(user.subscriptionInfo.nextPaymentDate).toLocaleDateString('ja-JP')}
+                    <p className="text-sm text-red-600">
+                      サブスクリプション情報を取得できませんでした。しばらく時間をおいてからページを再読み込みしてください。
                     </p>
                   </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-neutral-600">ステータス</label>
+                        <p className="text-lg font-semibold text-neutral-900 capitalize">
+                          {user.subscriptionInfo.status === 'active' ? 'アクティブ' : user.subscriptionInfo.status}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-neutral-600">次回請求額</label>
+                        <p className="text-lg font-semibold text-neutral-900">
+                          ¥{user.subscriptionInfo.nextPaymentAmount?.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {user.subscriptionInfo.nextPaymentDate ? (
+                      <div>
+                        <label className="text-sm font-medium text-neutral-600">次回請求日</label>
+                        <p className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(user.subscriptionInfo.nextPaymentDate).toLocaleDateString('ja-JP')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-sm font-medium text-neutral-600">次回請求日</label>
+                        <p className="text-lg font-semibold text-neutral-900 text-red-600">
+                          情報取得エラー
+                        </p>
+                      </div>
+                    )}
 
                   {user.subscriptionInfo.cancelAtPeriodEnd && user.subscriptionInfo.serviceEndDate && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">

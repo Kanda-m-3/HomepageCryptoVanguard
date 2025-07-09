@@ -225,21 +225,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.stripeSubscriptionId) {
         try {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-          subscriptionInfo = {
-            // 旧）nextPaymentDate: new Date(subscription.current_period_end * 1000).toISOString(),
-            // 新）数値でも文字列でも安全に変換
-            nextPaymentDate: toDate(subscription.current_period_end).toISOString(),
-            nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
-            // 旧）serviceEndDate: subscription.cancel_at_period_end ? 
-            //  new Date(subscription.current_period_end * 1000).toISOString() : null,
-            // 新）数値でも文字列でも安全に変換
-            serviceEndDate: subscription.cancel_at_period_end ?
-              toDate(subscription.current_period_end).toISOString() : null,
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-            status: subscription.status,
-          };
+          const nextPaymentDate = toDate(subscription.current_period_end);
+          
+          if (nextPaymentDate) {
+            subscriptionInfo = {
+              nextPaymentDate: nextPaymentDate.toISOString(),
+              nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
+              serviceEndDate: subscription.cancel_at_period_end ?
+                nextPaymentDate.toISOString() : null,
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+              status: subscription.status,
+            };
+          } else {
+            console.error('Invalid subscription period end date:', subscription.current_period_end);
+            subscriptionInfo = {
+              nextPaymentDate: null,
+              nextPaymentAmount: subscription.items.data[0].price.unit_amount / 100,
+              serviceEndDate: null,
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+              status: subscription.status,
+            };
+          }
         } catch (stripeError) {
           console.error('Error fetching subscription from Stripe:', stripeError);
+          console.error('Subscription ID:', user.stripeSubscriptionId);
+          // Set a fallback subscription info to indicate error
+          subscriptionInfo = {
+            error: true,
+            nextPaymentDate: null,
+            nextPaymentAmount: 0,
+            serviceEndDate: null,
+            cancelAtPeriodEnd: false,
+            status: 'error',
+          };
         }
       }
 
@@ -551,9 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateUserSubscriptionInfo(userForUpdate.id, {
               subscriptionStatus: updatedSubscription.status,
               subscriptionCancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
-              // 旧）subscriptionCurrentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
-              // 新）数値でも文字列でも安全に変換
-              subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
+              subscriptionCurrentPeriodEnd: toDate(updatedSubscription.current_period_end),
               subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount / 100).toString(),
             });
           }
