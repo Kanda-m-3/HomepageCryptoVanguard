@@ -132,7 +132,7 @@ export default function VipMember() {
                 </div>
                 <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
                   <Crown className="h-3 w-3 mr-1" />
-                  VIPメンバー
+                  VIP Member
                 </Badge>
               </div>
             </CardContent>

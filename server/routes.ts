@@ -224,13 +224,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch subscription details from Stripe if user has a subscription
       if (user.stripeSubscriptionId) {
         try {
-          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-          const nextPaymentDate = toDate(subscription.current_period_end);
+        //  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        //  const nextPaymentDate = toDate(subscription.current_period_end);
+          const subscription = await stripe.subscriptions.retrieve(
+            user.stripeSubscriptionId,
+            { expand: ['latest_invoice'] }          // ★ 追加
+          );
+
+          // current_period_end が null の場合は latest_invoice.period_end を代用
+          const periodEndRaw =
+            subscription.current_period_end ??
+            (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
+          const nextPaymentDate = toDate(periodEndRaw);
           
           if (nextPaymentDate) {
             subscriptionInfo = {
+          //    nextPaymentDate: nextPaymentDate.toISOString(),
+          //    nextPaymentAmount: subscription.items.data[0].price.unit_amount,
               nextPaymentDate: nextPaymentDate.toISOString(),
-              nextPaymentAmount: subscription.items.data[0].price.unit_amount,
+              nextPaymentAmount:
+                subscription.latest_invoice
+                  ? (subscription.latest_invoice.amount_due / (subscription.currency === 'jpy' ? 1 : 1))
+                  : (subscription.items.data[0].price.unit_amount / (subscription.currency === 'jpy' ? 1 : 1)),
+
               serviceEndDate: subscription.cancel_at_period_end ?
                 nextPaymentDate.toISOString() : null,
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -539,16 +555,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Session metadata userId:', session.metadata.userId);
           
           if (session.mode === 'subscription') {
-            const subscription = await stripe.subscriptions.retrieve(session.subscription);
+            // const subscription = await stripe.subscriptions.retrieve(session.subscription);
+            const subscription = await stripe.subscriptions.retrieve(
+              session.subscription as string,
+              { expand: ['latest_invoice'] }        // ★ 追加
+            );
             
+            // await storage.updateUserSubscriptionInfo(userId, {
+            // period_end → current_period_end が無ければ latest_invoice.period_end
+            const periodEndRaw =
+              subscription.current_period_end ??
+              (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
+
             await storage.updateUserSubscriptionInfo(userId, {
               stripeSubscriptionId: subscription.id,
               subscriptionStatus: subscription.status,
               subscriptionCancelAtPeriodEnd: subscription.cancel_at_period_end,
               // 旧）subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
               // 新）数値でも文字列でも安全に変換
-              subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
-              subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount).toString(),
+              // subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end),
+              // subscriptionNextPaymentAmount: (subscription.items.data[0].price.unit_amount).toString(),
+              subscriptionCurrentPeriodEnd: toDate(periodEndRaw),
+              subscriptionNextPaymentAmount: (
+                subscription.latest_invoice
+                  ? subscription.latest_invoice.amount_due /
+                      (subscription.currency === 'jpy' ? 1 : 100)
+                  : subscription.items.data[0].price.unit_amount /
+                      (subscription.currency === 'jpy' ? 1 : 100)
+              ).toString(),              
               isVipMember: true,
             });
 
