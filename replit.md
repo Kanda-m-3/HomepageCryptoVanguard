@@ -88,6 +88,9 @@ The deployment includes PostgreSQL module for database connectivity and is optim
 ## Changelog
 
 ## Recent Changes  
+- July 10, 2025: ✅ Fixed critical Discord authentication error in routes.ts
+- July 10, 2025: ✅ Resolved storage.updateUser method call to use updateUserSubscriptionInfo
+- July 10, 2025: ✅ Application now runs without authentication errors
 - January 8, 2025: ✅ Implemented complete VIP membership system with Stripe subscriptions
 - January 8, 2025: ✅ Added VIP Member dashboard page with subscription management  
 - January 8, 2025: ✅ Created Stripe webhook integration for subscription lifecycle management

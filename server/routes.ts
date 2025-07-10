@@ -221,37 +221,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let subscriptionInfo = null;
 
-      // Fetch subscription details from Stripe if user has a subscription
+      // --- Stripe からサブスク詳細を取得 ---
       if (user.stripeSubscriptionId) {
         try {
-          // --- ↓ ここから書き換え ↓ ---
-          // サブスク本体と「次回請求書」を並列で取得
-          const [subscription, upcoming] = await Promise.all([
-            stripe.subscriptions.retrieve(
-              user.stripeSubscriptionId,
-              { expand: ['latest_invoice'] }
-            ),
-            stripe.invoices.retrieveUpcoming({              // ★ 追加
-              subscription: user.stripeSubscriptionId
-            }),
-          ]);
-
-          // upcoming.next_payment_attempt → period_end → due_date の順でフォールバック
-          const nextPaymentDate = toDate(
-            upcoming.next_payment_attempt ??
-            upcoming.period_end ??
-            upcoming.due_date
+          const subscription = await stripe.subscriptions.retrieve(
+            user.stripeSubscriptionId,
+            { expand: ['latest_invoice'] }   // 既存の expand 指定
           );
 
-          // 課金額は upcoming.amount_due を採用（JPY のときはそのまま）
-          const nextPaymentAmount =
-            upcoming.amount_due / (subscription.currency === 'jpy' ? 1 : 1);
-          // --- ↑ ここまで書き換え ↑ ---
+          const periodEndRaw =
+            subscription.current_period_end ??
+            (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
+          const nextPaymentDate = toDate(periodEndRaw);
 
           if (nextPaymentDate) {
             subscriptionInfo = {
               nextPaymentDate: nextPaymentDate.toISOString(),
-              nextPaymentAmount,                            // ★ 差し替え
+              nextPaymentAmount:
+                subscription.latest_invoice
+                  ? subscription.latest_invoice.amount_due
+                  : subscription.items.data[0].price.unit_amount,
               serviceEndDate: subscription.cancel_at_period_end
                 ? nextPaymentDate.toISOString()
                 : null,
@@ -259,6 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: subscription.status,
             };
           } else {
+            // フォールバック
             subscriptionInfo = {
               error: true,
               nextPaymentDate: null,
@@ -269,17 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
           }
         } catch (stripeError) {
-          console.error('Error fetching subscription from Stripe:', stripeError);
-        /*  console.error('Subscription ID:', user.stripeSubscriptionId);
-          // Set a fallback subscription info to indicate error
-          subscriptionInfo = {
-            error: true,
-            nextPaymentDate: null,
-            nextPaymentAmount: 0,
-            serviceEndDate: null,
-            cancelAtPeriodEnd: false,
-            status: 'error',
-          };*/
+          console.error('Error fetching subscription:', stripeError);
         }
       }
 
