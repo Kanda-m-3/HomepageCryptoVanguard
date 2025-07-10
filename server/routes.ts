@@ -221,62 +221,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let subscriptionInfo = null;
 
-      // Fetch subscription details from Stripe if user has a subscription
+      // --- Stripe からサブスク詳細を取得 ---
       if (user.stripeSubscriptionId) {
         try {
-        //  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        //  const nextPaymentDate = toDate(subscription.current_period_end);
           const subscription = await stripe.subscriptions.retrieve(
             user.stripeSubscriptionId,
-            { expand: ['latest_invoice'] }          // ★ 追加
+            { expand: ['latest_invoice'] }   // 既存の expand 指定
           );
 
-          // current_period_end が null の場合は latest_invoice.period_end を代用
           const periodEndRaw =
             subscription.current_period_end ??
             (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
           const nextPaymentDate = toDate(periodEndRaw);
-          
+
           if (nextPaymentDate) {
             subscriptionInfo = {
-          //    nextPaymentDate: nextPaymentDate.toISOString(),
-          //    nextPaymentAmount: subscription.items.data[0].price.unit_amount,
               nextPaymentDate: nextPaymentDate.toISOString(),
               nextPaymentAmount:
                 subscription.latest_invoice
-                  ? (subscription.latest_invoice.amount_due / (subscription.currency === 'jpy' ? 1 : 1))
-                  : (subscription.items.data[0].price.unit_amount / (subscription.currency === 'jpy' ? 1 : 1)),
-
-              serviceEndDate: subscription.cancel_at_period_end ?
-                nextPaymentDate.toISOString() : null,
+                  ? subscription.latest_invoice.amount_due
+                  : subscription.items.data[0].price.unit_amount,
+              serviceEndDate: subscription.cancel_at_period_end
+                ? nextPaymentDate.toISOString()
+                : null,
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
               status: subscription.status,
             };
           } else {
-            console.error('Invalid subscription period end date:', subscription.current_period_end);
+            // フォールバック
             subscriptionInfo = {
+              error: true,
               nextPaymentDate: null,
-              nextPaymentAmount: subscription.items.data[0].price.unit_amount,
+              nextPaymentAmount: 0,
               serviceEndDate: null,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              status: subscription.status,
+              cancelAtPeriodEnd: false,
+              status: 'error',
             };
           }
         } catch (stripeError) {
-          console.error('Error fetching subscription from Stripe:', stripeError);
-          console.error('Subscription ID:', user.stripeSubscriptionId);
-          // Set a fallback subscription info to indicate error
-          subscriptionInfo = {
-            error: true,
-            nextPaymentDate: null,
-            nextPaymentAmount: 0,
-            serviceEndDate: null,
-            cancelAtPeriodEnd: false,
-            status: 'error',
-          };
+          console.error('Error fetching subscription:', stripeError);
         }
       }
 
+      /* ===== ★★ ここから自己修復ブロック ★★ ===== */
+      if (subscriptionInfo) {
+        const shouldBeVip = subscriptionInfo.status === 'active';
+
+        if (shouldBeVip !== user.isVipMember) {
+          // DB を修正
+          await storage.updateUser(user.id, { isVipMember: shouldBeVip });
+
+          // Discord 側も同期
+          if (user.discordId) {
+            await assignDiscordVipRole(user.discordId, shouldBeVip);
+          }
+
+          // レスポンスに反映（メモリ上の user オブジェクトも更新）
+          user.isVipMember = shouldBeVip;
+        }
+      }
+      /* ===== ★★ ここまで追加 ★★ ===== */
+      
       res.json({ 
         user: {
           ...user,
@@ -594,11 +599,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           break;
 
-        case 'customer.subscription.updated':
+        /*case 'customer.subscription.updated':
           const updatedSubscription = event.data.object;
           const customer = await stripe.customers.retrieve(updatedSubscription.customer);
           const userForUpdate = await storage.getUser(parseInt(customer.metadata?.userId || '0'));
-          
+
           if (userForUpdate) {
             await storage.updateUserSubscriptionInfo(userForUpdate.id, {
               subscriptionStatus: updatedSubscription.status,
@@ -607,8 +612,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subscriptionNextPaymentAmount: (updatedSubscription.items.data[0].price.unit_amount).toString(),
             });
           }
-          break;
+          break;*/
 
+        case 'customer.subscription.updated': {
+          const updated = event.data.object as Stripe.Subscription;
+          const customer = await stripe.customers.retrieve(updated.customer);
+          const user = await storage.getUser(parseInt(customer.metadata?.userId || '0'));
+
+          if (user) {
+            const isActive = updated.status === 'active';
+
+            await storage.updateUserSubscriptionInfo(user.id, {
+              subscriptionStatus: updated.status,
+              subscriptionCancelAtPeriodEnd: updated.cancel_at_period_end,
+              subscriptionCurrentPeriodEnd: toDate(updated.current_period_end),
+              subscriptionNextPaymentAmount: String(updated.items.data[0].price.unit_amount),
+              isVipMember: isActive,               // ★ 追加
+            });
+
+            if (user.discordId) {
+              await assignDiscordVipRole(user.discordId, isActive);  // ★ 追加
+            }
+          }
+          break;
+        }
+            
         case 'customer.subscription.deleted':
           const deletedSubscription = event.data.object;
           const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer);
