@@ -224,44 +224,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch subscription details from Stripe if user has a subscription
       if (user.stripeSubscriptionId) {
         try {
-        //  const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        //  const nextPaymentDate = toDate(subscription.current_period_end);
-          const subscription = await stripe.subscriptions.retrieve(
-            user.stripeSubscriptionId,
-            { expand: ['latest_invoice'] }          // ★ 追加
+          // --- ↓ ここから書き換え ↓ ---
+          // サブスク本体と「次回請求書」を並列で取得
+          const [subscription, upcoming] = await Promise.all([
+            stripe.subscriptions.retrieve(
+              user.stripeSubscriptionId,
+              { expand: ['latest_invoice'] }
+            ),
+            stripe.invoices.retrieveUpcoming({              // ★ 追加
+              subscription: user.stripeSubscriptionId
+            }),
+          ]);
+
+          // upcoming.next_payment_attempt → period_end → due_date の順でフォールバック
+          const nextPaymentDate = toDate(
+            upcoming.next_payment_attempt ??
+            upcoming.period_end ??
+            upcoming.due_date
           );
 
-          // current_period_end が null の場合は latest_invoice.period_end を代用
-          const periodEndRaw =
-            subscription.current_period_end ??
-            (subscription.latest_invoice as Stripe.Invoice | null)?.period_end;
-          const nextPaymentDate = toDate(periodEndRaw);
-          
+          // 課金額は upcoming.amount_due を採用（JPY のときはそのまま）
+          const nextPaymentAmount =
+            upcoming.amount_due / (subscription.currency === 'jpy' ? 1 : 1);
+          // --- ↑ ここまで書き換え ↑ ---
+
           if (nextPaymentDate) {
             subscriptionInfo = {
-          //    nextPaymentDate: nextPaymentDate.toISOString(),
-          //    nextPaymentAmount: subscription.items.data[0].price.unit_amount,
               nextPaymentDate: nextPaymentDate.toISOString(),
-              nextPaymentAmount:
-                subscription.latest_invoice
-                  ? (subscription.latest_invoice.amount_due / (subscription.currency === 'jpy' ? 1 : 1))
-                  : (subscription.items.data[0].price.unit_amount / (subscription.currency === 'jpy' ? 1 : 1)),
-
-              serviceEndDate: subscription.cancel_at_period_end ?
-                nextPaymentDate.toISOString() : null,
+              nextPaymentAmount,                            // ★ 差し替え
+              serviceEndDate: subscription.cancel_at_period_end
+                ? nextPaymentDate.toISOString()
+                : null,
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
               status: subscription.status,
             };
           } else {
-          //  console.error('Invalid subscription period end date:', subscription.current_period_end);
-          /*  subscriptionInfo = {
-              nextPaymentDate: null,
-              nextPaymentAmount: subscription.items.data[0].price.unit_amount,
-              serviceEndDate: null,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              status: subscription.status,
-            };*/
-
             subscriptionInfo = {
               error: true,
               nextPaymentDate: null,
