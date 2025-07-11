@@ -27,7 +27,8 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true, // Prevent XSS attacks
-    sameSite: 'lax' // CSRF protection
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Deploy環境でクロスサイト対応
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // ドメイン指定なし
   },
   // In production, consider using a proper session store like Redis
   // For now, we'll suppress the warning with a comment

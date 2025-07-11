@@ -95,9 +95,8 @@ export default function VipCommunity() {
   };
 
   const handleDiscordLogin = () => {
-    // Use direct navigation instead of popup
-    /* window.location.href = '/api/auth/discord';*/
-    window.open('/api/auth/discord', '_blank', 'noopener');
+    // Use direct navigation for better compatibility
+    window.location.href = '/api/auth/discord';
   };
 
   const handleBackFromJoinFlow = () => {
