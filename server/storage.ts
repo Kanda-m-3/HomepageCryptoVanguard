@@ -9,6 +9,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User>;
   updateStripeCustomerId(userId: number, customerId: string): Promise<User>;
+  updateUser(userId: number, userData: Partial<User>): Promise<User>;
   updateUserSubscriptionInfo(userId: number, subscriptionData: {
     stripeSubscriptionId?: string;
     subscriptionStatus?: string;
@@ -249,6 +250,16 @@ export class MemStorage implements IStorage {
       purchase => purchase.userId === userId && purchase.reportId === reportId
     );
   }
+
+  async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const updatedUser = { ...user, ...userData };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -396,6 +407,15 @@ export class DatabaseStorage implements IStorage {
       .from(purchases)
       .where(and(eq(purchases.userId, userId), eq(purchases.reportId, reportId)));
     return !!purchase;
+  }
+
+  async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 
