@@ -8,6 +8,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
+// Helper function to add one month to a date
+const addOneMonth = (dateString: string): string => {
+  const date = new Date(dateString);
+  date.setMonth(date.getMonth() + 1);
+  return date.toLocaleDateString('en-US');
+};
+
 interface SubscriptionInfo {
   nextPaymentDate: string;
   nextPaymentAmount: number;
@@ -130,12 +137,14 @@ export default function VipMember() {
                   <p className="font-semibold text-neutral-900">{user.username}</p>
                   <p className="text-sm text-neutral-600">Discord: {user.discordUsername}</p>
                 </div>
-                <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
-                  <Crown className="h-3 w-3 mr-1" />
-                  VIP Member
-                </Badge>
               </div>
             </CardContent>
+            <div className="px-6 pb-6">
+              <Badge variant="default" className="bg-crypto-gold text-white">
+                <Crown className="h-3 w-3 mr-1" />
+                VIPメンバー
+              </Badge>
+            </div>
           </Card>
 
           {/* Subscription Info */}
@@ -178,7 +187,7 @@ export default function VipMember() {
                       <label className="text-sm font-medium text-neutral-600">次回課金日</label>
                       <p className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        {new Date(user.subscriptionInfo.nextPaymentDate).toLocaleDateString('en-US')}
+                        {addOneMonth(user.subscriptionInfo.nextPaymentDate)}
                       </p>
                     </div>
                   ) : (
@@ -197,7 +206,7 @@ export default function VipMember() {
                         <span className="font-medium">解約スケジュール済み</span>
                       </div>
                       <p className="text-sm text-amber-600">
-                        サービス終了日: {new Date(user.subscriptionInfo.serviceEndDate).toLocaleDateString('en-US')}
+                        サービス終了日: {addOneMonth(user.subscriptionInfo.serviceEndDate)}
                       </p>
                     </div>
                   )}

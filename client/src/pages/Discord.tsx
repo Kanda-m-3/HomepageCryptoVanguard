@@ -67,7 +67,7 @@ export default function Discord() {
             </p>
             <Button 
               size="lg"
-              className="text-crypto-cyan hover:bg-gray-100 font-bold px-12 py-6 text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20 bg-[#74acff]"
+              className="text-crypto-cyan hover:bg-gray-100 font-bold px-12 py-6 text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20 bg-[#74acff] pl-[32px] pr-[32px] pt-[16px] pb-[16px]"
               onClick={() => window.open(discordInviteUrl, '_blank')}
             >
               <FaDiscord className="mr-2 h-5 w-5" />
