@@ -130,12 +130,14 @@ export default function VipMember() {
                   <p className="font-semibold text-neutral-900">{user.username}</p>
                   <p className="text-sm text-neutral-600">Discord: {user.discordUsername}</p>
                 </div>
-                <Badge variant="default" className="ml-auto bg-crypto-gold text-white">
-                  <Crown className="h-3 w-3 mr-1" />
-                  VIP Member
-                </Badge>
               </div>
             </CardContent>
+            <div className="px-6 pb-6">
+              <Badge variant="default" className="bg-crypto-gold text-white">
+                <Crown className="h-3 w-3 mr-1" />
+                VIP Member
+              </Badge>
+            </div>
           </Card>
 
           {/* Subscription Info */}
