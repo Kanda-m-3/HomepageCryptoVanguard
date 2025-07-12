@@ -203,9 +203,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          res.redirect('/vip-community?error=session_error');
+          console.error('Session save error details:', {
+            message: err.message,
+            stack: err.stack,
+            sessionId: req.sessionID,
+            userId: user.id
+          });
+          
+          // Try manual session assignment as fallback
+          try {
+            req.session.userId = user.id;
+            console.log('Manual session assignment successful, redirecting...');
+            res.redirect('/vip-community?auth=success');
+          } catch (fallbackError) {
+            console.error('Fallback session assignment also failed:', fallbackError);
+            res.redirect('/vip-community?error=session_error');
+          }
           return;
         }
+        console.log('Session saved successfully for user:', user.id);
         // Redirect to VIP community page
         res.redirect('/vip-community?auth=success');
       });

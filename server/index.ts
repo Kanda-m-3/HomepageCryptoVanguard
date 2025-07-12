@@ -24,16 +24,24 @@ app.use(express.urlencoded({ extended: false }));
 const isProduction = process.env.NODE_ENV === "production";
 let sessionStore;
 
-if (isProduction) {
-  const PgSession = connectPgSimple(session);
-  sessionStore = new PgSession({
-    pool: {
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
-    },
-    tableName: 'user_sessions',
-    createTableIfMissing: true
-  });
+if (isProduction && process.env.DATABASE_URL) {
+  try {
+    const PgSession = connectPgSimple(session);
+    sessionStore = new PgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'user_sessions',
+      createTableIfMissing: true
+    });
+    console.log('PostgreSQL session store configured successfully');
+  } catch (error) {
+    console.error('Failed to configure PostgreSQL session store:', error);
+    console.log('Falling back to memory store');
+    sessionStore = undefined;
+  }
+} else {
+  if (isProduction) {
+    console.warn('DATABASE_URL not set in production, using memory store');
+  }
 }
 
 app.use(
