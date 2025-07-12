@@ -42,7 +42,7 @@ async function assignDiscordVipRole(discordUserId: string, assign: boolean) {
   try {
     const url = `https://discord.com/api/guilds/${DISCORD_SERVER_ID}/members/${discordUserId}/roles/${VIP_ROLE_ID}`;
     const method = assign ? 'PUT' : 'DELETE';
-    
+
     const response = await fetch(url, {
       method,
       headers: {
@@ -87,20 +87,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", (req, res) => {
     const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
     const redirectUri = environment.redirectUri;
-    
+
     // Validate redirect URI
     if (!CrossEnvironmentOAuthManager.validateRedirectUri(redirectUri, req)) {
       console.error('Invalid redirect URI detected:', redirectUri);
       return res.status(400).json({ error: 'Invalid redirect URI configuration' });
     }
-    
+
     const scopes = ['identify', 'guilds', 'email'].join('%20');
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
-    
+
     console.log('Discord OAuth URL:', discordAuthUrl);
     console.log('Environment:', environment.name);
     console.log('Using redirect URI:', redirectUri);
-    
+
     res.redirect(discordAuthUrl);
   });
 
@@ -144,6 +144,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const discordUser = await userResponse.json();
 
+      console.log('Discord user data:', discordUser);
+      console.log('Discord user ID:', discordUser.id);
+      console.log('Discord user ID type:', typeof discordUser.id);
+
+      if (!discordUser.id) {
+        console.error('Discord user object:', JSON.stringify(discordUser, null, 2));
+        throw new Error('Discord user ID not found in API response');
+      }
+
       // Get user's guilds to check server membership
       const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
         headers: {
@@ -152,17 +161,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const guilds = await guildsResponse.json();
-      
+
       console.log('Discord user guilds:', guilds.map((g: any) => ({ id: g.id, name: g.name })));
       console.log('Looking for guild ID:', DISCORD_GUILD_ID);
-      
+
       const isServerMember = guilds.some((guild: any) => guild.id === DISCORD_GUILD_ID);
-      
+
       console.log('Is server member check:', isServerMember);
 
       // Check if user is a member of the Crypto Vanguard server
       const actualIsServerMember = isServerMember;
-      
+
       if (!actualIsServerMember) {
         console.log('User is not a member of Crypto Vanguard server');
         return res.redirect('/vip-community?error=not_member');
@@ -186,9 +195,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store user in session
       req.session.userId = user.id;
-      
+
       console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
-      
+
       // Redirect to VIP community page
       res.redirect('/vip-community?auth=success');
     } catch (error: any) {
@@ -281,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       /* ===== ★★ ここまで追加 ★★ ===== */
-      
+
       res.json({ 
         user: {
           ...user,
@@ -442,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       // Check if user already has active VIP membership
       if (user.isVipMember && user.subscriptionStatus === 'active') {
         return res.json({ redirectTo: '/vip-member' });
@@ -499,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       if (!user.stripeSubscriptionId) {
         return res.status(400).json({ message: "No active subscription found" });
       }
@@ -551,21 +560,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log('Processing webhook event:', event.type, 'ID:', event.id);
-      
+
       switch (event.type) {
         case 'checkout.session.completed':
           console.log('Processing checkout.session.completed');
           const session = event.data.object;
           const userId = parseInt(session.metadata.userId);
           console.log('Session metadata userId:', session.metadata.userId);
-          
+
           if (session.mode === 'subscription') {
             // const subscription = await stripe.subscriptions.retrieve(session.subscription);
             const subscription = await stripe.subscriptions.retrieve(
               session.subscription as string,
               { expand: ['latest_invoice'] }        // ★ 追加
             );
-            
+
             // await storage.updateUserSubscriptionInfo(userId, {
             // period_end → current_period_end が無ければ latest_invoice.period_end
             const periodEndRaw =
@@ -636,12 +645,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           break;
         }
-            
+
         case 'customer.subscription.deleted':
           const deletedSubscription = event.data.object;
           const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer);
           const userForDeletion = await storage.getUser(parseInt(deletedCustomer.metadata?.userId || '0'));
-          
+
           if (userForDeletion) {
             await storage.updateUserSubscriptionInfo(userForDeletion.id, {
               subscriptionStatus: 'canceled',
@@ -659,7 +668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const failedInvoice = event.data.object;
           const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer);
           const userForFailure = await storage.getUser(parseInt(failedCustomer.metadata?.userId || '0'));
-          
+
           if (userForFailure) {
             await storage.updateUserSubscriptionInfo(userForFailure.id, {
               subscriptionStatus: 'past_due',

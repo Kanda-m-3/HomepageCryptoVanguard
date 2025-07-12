@@ -18,12 +18,12 @@ export interface IStorage {
     subscriptionNextPaymentAmount?: string;
     isVipMember?: boolean;
   }): Promise<User>;
-  
+
   getAllReports(): Promise<AnalyticalReport[]>;
   getReport(id: number): Promise<AnalyticalReport | undefined>;
   getFreeSampleReports(): Promise<AnalyticalReport[]>;
   createReport(report: InsertAnalyticalReport): Promise<AnalyticalReport>;
-  
+
   createPurchase(purchase: InsertPurchase): Promise<Purchase>;
   getUserPurchases(userId: number): Promise<Purchase[]>;
   hasUserPurchasedReport(userId: number, reportId: number): Promise<boolean>;
@@ -44,7 +44,7 @@ export class MemStorage implements IStorage {
     this.currentUserId = 1;
     this.currentReportId = 1;
     this.currentPurchaseId = 1;
-    
+
     // Initialize with sample reports
     this.initializeSampleReports();
   }
@@ -124,12 +124,17 @@ export class MemStorage implements IStorage {
   }
 
   async createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User> {
+    console.log('createOrUpdateDiscordUser called with:', discordUser);
+    console.log('discordUser.discordId:', discordUser.discordId);
+    console.log('discordUser.discordId type:', typeof discordUser.discordId);
+
     if (!discordUser.discordId) {
+      console.error('Discord user data received:', JSON.stringify(discordUser, null, 2));
       throw new Error("Discord ID is required");
     }
 
     const existingUser = await this.getUserByDiscordId(discordUser.discordId);
-    
+
     if (existingUser) {
       // Update existing user
       const updatedUser: User = {
@@ -290,12 +295,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User> {
+    console.log('createOrUpdateDiscordUser called with:', discordUser);
+    console.log('discordUser.discordId:', discordUser.discordId);
+    console.log('discordUser.discordId type:', typeof discordUser.discordId);
+
     if (!discordUser.discordId) {
+      console.error('Discord user data received:', JSON.stringify(discordUser, null, 2));
       throw new Error("Discord ID is required");
     }
 
     const existingUser = await this.getUserByDiscordId(discordUser.discordId);
-    
+
     if (existingUser) {
       // Update existing user
       const [user] = await db
