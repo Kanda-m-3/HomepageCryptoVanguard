@@ -26,20 +26,10 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined
-    /** Live では必ず HTTPS + クロスサイト遷移(OAuth)になる */
-    secure: true,
-    sameSite: 'none',
-    /** ルートドメイン配下の全サブドメインで共有したい場合は先頭にドット */
-    domain: '.japan-style-website-cryptovanguardo.replit.app',
-  },
-  /*cookie: {
-    secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true, // Prevent XSS attacks
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Deploy環境でクロスサイト対応
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // ドメイン指定なし
-  },*/
+  },
   // In production, consider using a proper session store like Redis
   // For now, we'll suppress the warning with a comment
   name: 'sessionId' // Change default session name for security
