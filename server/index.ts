@@ -26,6 +26,7 @@ let sessionStore;
 
 if (process.env.DATABASE_URL) {
   try {
+    console.log('🔄 Configuring PostgreSQL session store...');
     const PgSession = connectPgSimple(session);
     sessionStore = new PgSession({
       conString: process.env.DATABASE_URL,
@@ -33,27 +34,32 @@ if (process.env.DATABASE_URL) {
       createTableIfMissing: true,
       pruneSessionInterval: 60 * 5, // Remove expired sessions every 5 minutes
       errorLog: (err: any) => {
-        console.error('PostgreSQL session store error:', err);
+        console.error('❌ PostgreSQL session store error:', err);
       }
     });
-    console.log('PostgreSQL session store configured successfully');
+    console.log('✅ PostgreSQL session store configured successfully');
+    console.log('Session store type:', sessionStore.constructor.name);
     
-    // Test the session store connection
+    // Test the session store connection with more details
     sessionStore.on('connect', () => {
-      console.log('Session store connected to PostgreSQL');
+      console.log('🔗 Session store connected to PostgreSQL');
     });
     
     sessionStore.on('disconnect', () => {
-      console.log('Session store disconnected from PostgreSQL');
+      console.log('💔 Session store disconnected from PostgreSQL');
     });
     
+    // Test session store functionality
+    console.log('🧪 Testing session store...');
+    
   } catch (error) {
-    console.error('Failed to configure PostgreSQL session store:', error);
-    console.log('Falling back to memory store');
+    console.error('❌ Failed to configure PostgreSQL session store:', error);
+    console.log('⚠️ Falling back to memory store');
     sessionStore = undefined;
   }
 } else {
-  console.warn('DATABASE_URL not set, using memory store');
+  console.warn('⚠️ DATABASE_URL not set, using memory store');
+  console.log('Environment:', process.env.NODE_ENV);
 }
 
 app.use(

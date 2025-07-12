@@ -74,6 +74,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Session diagnostics endpoint
+  app.get("/api/debug/session", (req, res) => {
+    res.json({
+      sessionId: req.sessionID,
+      sessionData: req.session,
+      sessionStore: {
+        type: req.sessionStore ? req.sessionStore.constructor.name : 'none',
+        hasStore: !!req.sessionStore
+      },
+      cookies: req.headers.cookie,
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        hasDatabase: !!process.env.DATABASE_URL,
+        sessionSecret: !!process.env.SESSION_SECRET
+      },
+      headers: {
+        host: req.get('host'),
+        userAgent: req.get('user-agent'),
+        origin: req.get('origin'),
+        referer: req.get('referer')
+      }
+    });
+  });
+
   // New endpoint to generate OAuth setup instructions
   app.get("/api/auth/discord/setup-guide", (req, res) => {
     res.json({
@@ -261,18 +285,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current Discord user info with subscription details
   app.get("/api/auth/user", async (req, res) => {
     try {
-      console.log('Auth user endpoint called:', {
+      const sessionInfo = {
         sessionId: req.sessionID,
         userId: req.session.userId,
         hasSession: !!req.session,
         sessionKeys: Object.keys(req.session || {}),
         sessionStore: req.sessionStore ? req.sessionStore.constructor.name : 'none',
-        cookie: req.session.cookie
-      });
+        cookie: req.session.cookie,
+        sessionAge: req.session.cookie ? req.session.cookie.maxAge : null,
+        environment: process.env.NODE_ENV
+      };
+      
+      console.log('=== AUTH USER ENDPOINT DEBUG ===');
+      console.log('Session Info:', JSON.stringify(sessionInfo, null, 2));
+      console.log('Raw Headers:', req.headers);
+      console.log('================================');
       
       if (!req.session.userId) {
-        console.log('No userId in session, returning null user');
-        return res.json({ user: null });
+        console.log('❌ AUTHENTICATION FAILED: No userId in session');
+        console.log('Session details:', req.session);
+        return res.json({ 
+          user: null, 
+          debug: {
+            error: 'Authentication failed',
+            sessionInfo,
+            message: 'セッションにユーザーIDが見つかりません'
+          }
+        });
       }
 
       const user = await storage.getUser(req.session.userId);
