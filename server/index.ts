@@ -24,11 +24,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true, // Always use secure cookies for OAuth flows
+    secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true, // Prevent XSS attacks
-    sameSite: 'none', // Required for cross-site OAuth redirects
-    domain: undefined // Let browser handle domain automatically
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Deploy環境でクロスサイト対応
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // ドメイン指定なし
   },
   // In production, consider using a proper session store like Redis
   // For now, we'll suppress the warning with a comment
