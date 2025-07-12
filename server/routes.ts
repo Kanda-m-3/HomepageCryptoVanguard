@@ -174,7 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!actualIsServerMember) {
         console.log('User is not a member of Crypto Vanguard server');
-        return res.redirect('/vip-community?error=not_member');
+        res.redirect('/vip-community?error=not_member');
+        return;
       }
 
       // Check if user has VIP role (this would require bot token to get guild member info)
@@ -198,11 +199,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
 
-      // Redirect to VIP community page
-      return res.redirect('/vip-community?auth=success');
+      // Save session before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          res.redirect('/vip-community?error=session_error');
+          return;
+        }
+        // Redirect to VIP community page
+        res.redirect('/vip-community?auth=success');
+      });
+      return;
     } catch (error: any) {
       console.error('Discord OAuth error:', error);
-      return res.redirect('/vip-community?error=auth_failed');
+      res.redirect('/vip-community?error=auth_failed');
+      return;
     }
   });
 
