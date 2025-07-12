@@ -204,7 +204,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionStore: !!req.sessionStore
       });
 
-      // Save session before redirect
+      // Debug session state before save
+      console.log('Session before save attempt:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        sessionStore: req.sessionStore ? req.sessionStore.constructor.name : 'none',
+        hasSessionStore: !!req.sessionStore
+      });
+
+      // Save session with enhanced error handling
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
@@ -212,25 +220,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: err.message,
             stack: err.stack,
             sessionId: req.sessionID,
-            userId: user.id
+            userId: user.id,
+            sessionStoreType: req.sessionStore ? req.sessionStore.constructor.name : 'none'
           });
           
-          // Try manual session assignment as fallback
-          try {
-            req.session.userId = user.id;
-            console.log('Manual session assignment successful, redirecting...');
-            res.redirect('/vip-community?auth=success');
-          } catch (fallbackError) {
-            console.error('Fallback session assignment also failed:', fallbackError);
-            res.redirect('/vip-community?error=session_error');
-          }
+          // Force session assignment and redirect anyway
+          req.session.userId = user.id;
+          console.log('Forced session assignment, redirecting despite save error...');
+          res.redirect('/vip-community?auth=success&session_warning=true');
           return;
         }
+        
         console.log('Session saved successfully for user:', user.id);
         console.log('Session after save:', {
           sessionId: req.sessionID,
-          userId: req.session.userId
+          userId: req.session.userId,
+          sessionAge: req.session.cookie.maxAge
         });
+        
         // Redirect to VIP community page
         res.redirect('/vip-community?auth=success');
       });
@@ -258,7 +265,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId: req.sessionID,
         userId: req.session.userId,
         hasSession: !!req.session,
-        sessionKeys: Object.keys(req.session || {})
+        sessionKeys: Object.keys(req.session || {}),
+        sessionStore: req.sessionStore ? req.sessionStore.constructor.name : 'none',
+        cookie: req.session.cookie
       });
       
       if (!req.session.userId) {
