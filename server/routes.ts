@@ -42,7 +42,7 @@ async function assignDiscordVipRole(discordUserId: string, assign: boolean) {
   try {
     const url = `https://discord.com/api/guilds/${DISCORD_SERVER_ID}/members/${discordUserId}/roles/${VIP_ROLE_ID}`;
     const method = assign ? 'PUT' : 'DELETE';
-
+    
     const response = await fetch(url, {
       method,
       headers: {
@@ -87,20 +87,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", (req, res) => {
     const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
     const redirectUri = environment.redirectUri;
-
+    
     // Validate redirect URI
     if (!CrossEnvironmentOAuthManager.validateRedirectUri(redirectUri, req)) {
       console.error('Invalid redirect URI detected:', redirectUri);
       return res.status(400).json({ error: 'Invalid redirect URI configuration' });
     }
-
+    
     const scopes = ['identify', 'guilds', 'email'].join('%20');
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}`;
-
+    
     console.log('Discord OAuth URL:', discordAuthUrl);
     console.log('Environment:', environment.name);
     console.log('Using redirect URI:', redirectUri);
-
+    
     res.redirect(discordAuthUrl);
   });
 
@@ -113,94 +113,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const environment = CrossEnvironmentOAuthManager.detectEnvironment(req);
-      const redirectUri = environment.redirectUri;
-
       // Exchange code for access token
-      const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
-        method: "POST",
+      const redirectUri = getDiscordRedirectUri(req);
+      const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: DISCORD_CLIENT_ID,
-          client_secret: DISCORD_CLIENT_SECRET,
+          client_id: DISCORD_CLIENT_ID!,
+          client_secret: DISCORD_CLIENT_SECRET!,
+          grant_type: 'authorization_code',
           code: code as string,
-          grant_type: "authorization_code",
           redirect_uri: redirectUri,
         }),
       });
 
+      const tokenData = await tokenResponse.json();
+
       if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        console.error('Token exchange failed:', errorText);
-        return res.status(400).json({ error: "Failed to exchange code for token" });
+        throw new Error(`Discord token exchange failed: ${tokenData.error}`);
       }
 
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
-
-      // Get user info from Discord
-      const userResponse = await fetch("https://discord.com/api/users/@me", {
+      // Get user information
+      const userResponse = await fetch('https://discord.com/api/users/@me', {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${tokenData.access_token}`,
         },
       });
-
-      if (!userResponse.ok) {
-        return res.status(400).json({ error: "Failed to get user info" });
-      }
 
       const discordUser = await userResponse.json();
 
       // Get user's guilds to check server membership
-      const guildsResponse = await fetch("https://discord.com/api/users/@me/guilds", {
+      const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${tokenData.access_token}`,
         },
       });
 
-      if (!guildsResponse.ok) {
-        return res.status(400).json({ error: "Failed to get user guilds" });
-      }
-
       const guilds = await guildsResponse.json();
+      
       console.log('Discord user guilds:', guilds.map((g: any) => ({ id: g.id, name: g.name })));
       console.log('Looking for guild ID:', DISCORD_GUILD_ID);
-
+      
       const isServerMember = guilds.some((guild: any) => guild.id === DISCORD_GUILD_ID);
+      
       console.log('Is server member check:', isServerMember);
 
-      // Create or update user in database
-      const userData = insertDiscordUserSchema.parse({
-        discord_id: discordUser.id,
-        discord_username: discordUser.username,
-        discord_avatar: discordUser.avatar,
+      // Check if user is a member of the Crypto Vanguard server
+      const actualIsServerMember = isServerMember;
+      
+      if (!actualIsServerMember) {
+        console.log('User is not a member of Crypto Vanguard server');
+        return res.redirect('/vip-community?error=not_member');
+      }
+
+      // Check if user has VIP role (this would require bot token to get guild member info)
+      // For now, we'll set it to false and implement VIP checking later
+      const isVipMember = false;
+
+      // Create or update Discord user in database
+      const userData = {
+        discordId: discordUser.id,
+        discordUsername: discordUser.username,
+        discordAvatar: discordUser.avatar,
         email: discordUser.email,
-        is_server_member: isServerMember,
-        is_vip_member: false, // Will be updated by subscription webhook
-      });
+        isServerMember: actualIsServerMember,
+        isVipMember,
+      };
 
       const user = await storage.createOrUpdateDiscordUser(userData);
-      console.log('Discord user authenticated:', user.username, 'Server member:', isServerMember, 'User ID:', user.id);
 
-      // Set session
+      // Store user in session
       req.session.userId = user.id;
-
-      // Redirect based on VIP status and server membership
-      if (user.is_vip_member) {
-        return res.redirect('/vip-member');
-      } else if (isServerMember) {
-        return res.redirect('/vip-community');
-      } else {
-        return res.redirect('/discord');
-      }
-
-    } catch (error) {
+      
+      console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
+      
+      // Redirect to VIP community page
+      res.redirect('/vip-community?auth=success');
+    } catch (error: any) {
       console.error('Discord OAuth error:', error);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Authentication failed" });
-      }
+      res.redirect('/vip-community?error=auth_failed');
     }
   });
 
@@ -288,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       /* ===== ★★ ここまで追加 ★★ ===== */
-
+      
       res.json({ 
         user: {
           ...user,
@@ -449,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
-
+      
       // Check if user already has active VIP membership
       if (user.isVipMember && user.subscriptionStatus === 'active') {
         return res.json({ redirectTo: '/vip-member' });
@@ -506,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
-
+      
       if (!user.stripeSubscriptionId) {
         return res.status(400).json({ message: "No active subscription found" });
       }
@@ -558,21 +551,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log('Processing webhook event:', event.type, 'ID:', event.id);
-
+      
       switch (event.type) {
         case 'checkout.session.completed':
           console.log('Processing checkout.session.completed');
           const session = event.data.object;
           const userId = parseInt(session.metadata.userId);
           console.log('Session metadata userId:', session.metadata.userId);
-
+          
           if (session.mode === 'subscription') {
             // const subscription = await stripe.subscriptions.retrieve(session.subscription);
             const subscription = await stripe.subscriptions.retrieve(
               session.subscription as string,
               { expand: ['latest_invoice'] }        // ★ 追加
             );
-
+            
             // await storage.updateUserSubscriptionInfo(userId, {
             // period_end → current_period_end が無ければ latest_invoice.period_end
             const periodEndRaw =
@@ -643,12 +636,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           break;
         }
-
+            
         case 'customer.subscription.deleted':
           const deletedSubscription = event.data.object;
           const deletedCustomer = await stripe.customers.retrieve(deletedSubscription.customer);
           const userForDeletion = await storage.getUser(parseInt(deletedCustomer.metadata?.userId || '0'));
-
+          
           if (userForDeletion) {
             await storage.updateUserSubscriptionInfo(userForDeletion.id, {
               subscriptionStatus: 'canceled',
@@ -666,7 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const failedInvoice = event.data.object;
           const failedCustomer = await stripe.customers.retrieve(failedInvoice.customer);
           const userForFailure = await storage.getUser(parseInt(failedCustomer.metadata?.userId || '0'));
-
+          
           if (userForFailure) {
             await storage.updateUserSubscriptionInfo(userForFailure.id, {
               subscriptionStatus: 'past_due',
