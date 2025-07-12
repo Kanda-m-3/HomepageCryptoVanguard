@@ -1,5 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { db } from "@/db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -18,22 +20,35 @@ app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Configure session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'crypto-vanguard-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true, // Prevent XSS attacks
-  },
-  // In production, consider using a proper session store like Redis
-  // For now, we'll suppress the warning with a comment
-  name: 'sessionId' // Change default session name for security
-}));
+// Configure session store based on environment
+const isProduction = process.env.NODE_ENV === "production";
+let sessionStore;
+
+if (isProduction) {
+  const PgSession = connectPgSimple(session);
+  sessionStore = new PgSession({
+    pool: {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    },
+    tableName: 'user_sessions',
+    createTableIfMissing: true
+  });
+}
+
+app.use(
+  session({
+    store: sessionStore, // Use database store in production, memory store in development
+    secret: process.env.SESSION_SECRET || "dev-secret-key-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: isProduction,
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
+  }),
+);
 
 app.use((req, res, next) => {
   const start = Date.now();
