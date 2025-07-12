@@ -30,7 +30,9 @@ if (isProduction && process.env.DATABASE_URL) {
     sessionStore = new PgSession({
       conString: process.env.DATABASE_URL,
       tableName: 'user_sessions',
-      createTableIfMissing: true
+      createTableIfMissing: true,
+      pruneSessionInterval: 60, // Remove expired sessions every 60 seconds
+      errorLog: console.error.bind(console)
     });
     console.log('PostgreSQL session store configured successfully');
   } catch (error) {
@@ -50,11 +52,14 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset expiration on each request
     cookie: {
       secure: isProduction,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: isProduction ? 'lax' : 'lax', // CSRF protection
     },
+    name: 'connect.sid', // Explicit session name
   }),
 );
 

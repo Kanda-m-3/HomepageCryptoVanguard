@@ -198,6 +198,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = user.id;
 
       console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
+      console.log('Session before save:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        sessionStore: !!req.sessionStore
+      });
 
       // Save session before redirect
       req.session.save((err) => {
@@ -222,6 +227,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
         console.log('Session saved successfully for user:', user.id);
+        console.log('Session after save:', {
+          sessionId: req.sessionID,
+          userId: req.session.userId
+        });
         // Redirect to VIP community page
         res.redirect('/vip-community?auth=success');
       });
@@ -245,7 +254,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current Discord user info with subscription details
   app.get("/api/auth/user", async (req, res) => {
     try {
+      console.log('Auth user endpoint called:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        hasSession: !!req.session,
+        sessionKeys: Object.keys(req.session || {})
+      });
+      
       if (!req.session.userId) {
+        console.log('No userId in session, returning null user');
         return res.json({ user: null });
       }
 
