@@ -199,10 +199,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
 
       // Redirect to VIP community page
-      res.redirect('/vip-community?auth=success');
+      return res.redirect('/vip-community?auth=success');
     } catch (error: any) {
       console.error('Discord OAuth error:', error);
-      res.redirect('/vip-community?error=auth_failed');
+      return res.redirect('/vip-community?error=auth_failed');
     }
   });
 
@@ -490,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      res.json({ checkoutUrl: session.url });
+      return res.json({ checkoutUrl: session.url });
     } catch (error: any) {
       console.error('Error creating subscription:', error);
       res.status(500).json({ message: "Error creating subscription: " + error.message });
@@ -526,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionCurrentPeriodEnd: toDate(subscription.current_period_end)
       });
 
-      res.json({ success: true, subscription });
+      return res.json({ success: true, subscription });
     } catch (error: any) {
       console.error('Error canceling subscription:', error);
       res.status(500).json({ message: "Error canceling subscription: " + error.message });
@@ -680,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Unhandled event type ${event.type}`);
       }
 
-      res.json({ received: true });
+      return res.json({ received: true });
     } catch (error: any) {
       console.error('Error processing webhook:', error);
       res.status(500).json({ error: error.message });
