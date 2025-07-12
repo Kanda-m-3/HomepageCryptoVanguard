@@ -52,6 +52,45 @@ if (process.env.DATABASE_URL) {
     // Test session store functionality
     console.log('🧪 Testing session store...');
     
+    // Test session store with a dummy session
+    setTimeout(async () => {
+      try {
+        console.log('🔍 Testing session store connectivity...');
+        
+        // Create a test session to verify store is working
+        const testSession = {
+          sessionID: 'test-session-' + Date.now(),
+          userId: 999999,
+          testData: 'connectivity-test'
+        };
+        
+        // Test session store operations if available
+        if (sessionStore && typeof sessionStore.set === 'function') {
+          await new Promise((resolve, reject) => {
+            sessionStore.set('test-session', testSession, (err: any) => {
+              if (err) {
+                console.error('❌ Session store test failed:', err);
+                reject(err);
+              } else {
+                console.log('✅ Session store connectivity test passed');
+                resolve(true);
+              }
+            });
+          });
+          
+          // Clean up test session
+          setTimeout(() => {
+            sessionStore.destroy('test-session', (err: any) => {
+              if (err) console.warn('⚠️ Test session cleanup failed:', err);
+              else console.log('🧹 Test session cleaned up');
+            });
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('💥 Session store connectivity test failed:', error);
+      }
+    }, 2000);
+    
   } catch (error) {
     console.error('❌ Failed to configure PostgreSQL session store:', error);
     console.log('⚠️ Falling back to memory store');

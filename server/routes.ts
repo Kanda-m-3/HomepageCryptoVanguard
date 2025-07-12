@@ -236,35 +236,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasSessionStore: !!req.sessionStore
       });
 
-      // Save session with enhanced error handling
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          console.error('Session save error details:', {
-            message: err.message,
-            stack: err.stack,
-            sessionId: req.sessionID,
-            userId: user.id,
-            sessionStoreType: req.sessionStore ? req.sessionStore.constructor.name : 'none'
-          });
-          
-          // Force session assignment and redirect anyway
-          req.session.userId = user.id;
-          console.log('Forced session assignment, redirecting despite save error...');
-          res.redirect('/vip-community?auth=success&session_warning=true');
-          return;
-        }
-        
-        console.log('Session saved successfully for user:', user.id);
-        console.log('Session after save:', {
-          sessionId: req.sessionID,
-          userId: req.session.userId,
-          sessionAge: req.session.cookie.maxAge
-        });
-        
-        // Redirect to VIP community page
-        res.redirect('/vip-community?auth=success');
+      // Store user in session and save synchronously
+      req.session.userId = user.id;
+      
+      console.log('Attempting to save session for user:', user.id);
+      console.log('Session before save:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        hasStore: !!req.sessionStore
       });
+
+      try {
+        // Use Promise wrapper to ensure session is saved before redirect
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error('❌ Session save failed:', err);
+              reject(err);
+            } else {
+              console.log('✅ Session saved successfully for user:', user.id);
+              console.log('Session confirmation:', {
+                sessionId: req.sessionID,
+                userId: req.session.userId,
+                sessionAge: req.session.cookie.maxAge
+              });
+              resolve();
+            }
+          });
+        });
+
+        // Additional verification: regenerate session to ensure persistence
+        await new Promise<void>((resolve, reject) => {
+          const tempUserId = req.session.userId;
+          req.session.regenerate((err) => {
+            if (err) {
+              console.warn('⚠️ Session regeneration failed, using existing session:', err);
+              resolve(); // Continue with existing session
+            } else {
+              req.session.userId = tempUserId; // Restore userId after regeneration
+              console.log('🔄 Session regenerated and userId restored');
+              resolve();
+            }
+          });
+        });
+
+        // Final save after regeneration
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error('❌ Final session save failed:', err);
+              reject(err);
+            } else {
+              console.log('✅ Final session save successful');
+              resolve();
+            }
+          });
+        });
+
+        console.log('🎉 Session processing complete, redirecting...');
+        res.redirect('/vip-community?auth=success');
+      } catch (error) {
+        console.error('💥 Session save process failed:', error);
+        
+        // Fallback: Force session assignment and redirect with warning
+        req.session.userId = user.id;
+        console.log('🚨 Using fallback session assignment');
+        res.redirect('/vip-community?auth=success&session_warning=true');
+      }
       return;
     } catch (error: any) {
       console.error('Discord OAuth error:', error);
