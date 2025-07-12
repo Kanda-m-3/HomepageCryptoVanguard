@@ -247,61 +247,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        // Use Promise wrapper to ensure session is saved before redirect
-        await new Promise<void>((resolve, reject) => {
-          req.session.save((err) => {
-            if (err) {
-              console.error('❌ Session save failed:', err);
-              reject(err);
-            } else {
-              console.log('✅ Session saved successfully for user:', user.id);
-              console.log('Session confirmation:', {
+        // 複数回保存試行で確実性を向上
+        let saveAttempts = 0;
+        const maxAttempts = 3;
+        let saveSuccessful = false;
+
+        while (saveAttempts < maxAttempts && !saveSuccessful) {
+          saveAttempts++;
+          console.log(`🔄 Session save attempt ${saveAttempts}/${maxAttempts} for user:`, user.id);
+
+          try {
+            await new Promise<void>((resolve, reject) => {
+              req.session.save((err) => {
+                if (err) {
+                  console.error(`❌ Session save attempt ${saveAttempts} failed:`, err);
+                  reject(err);
+                } else {
+                  console.log(`✅ Session save attempt ${saveAttempts} successful for user:`, user.id);
+                  console.log('Session confirmation:', {
+                    sessionId: req.sessionID,
+                    userId: req.session.userId,
+                    sessionAge: req.session.cookie.maxAge,
+                    attempt: saveAttempts
+                  });
+                  saveSuccessful = true;
+                  resolve();
+                }
+              });
+            });
+
+            // 保存成功後に短時間待機して確実性を向上
+            if (saveSuccessful) {
+              console.log('⏱️ Waiting 500ms to ensure session persistence...');
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // 最終確認: セッションが本当に保存されているかチェック
+              console.log('🔍 Final session verification:', {
                 sessionId: req.sessionID,
                 userId: req.session.userId,
-                sessionAge: req.session.cookie.maxAge
+                hasUserId: !!req.session.userId,
+                userIdType: typeof req.session.userId
               });
-              resolve();
             }
-          });
-        });
-
-        // Additional verification: regenerate session to ensure persistence
-        await new Promise<void>((resolve, reject) => {
-          const tempUserId = req.session.userId;
-          req.session.regenerate((err) => {
-            if (err) {
-              console.warn('⚠️ Session regeneration failed, using existing session:', err);
-              resolve(); // Continue with existing session
-            } else {
-              req.session.userId = tempUserId; // Restore userId after regeneration
-              console.log('🔄 Session regenerated and userId restored');
-              resolve();
+          } catch (saveError) {
+            console.error(`💥 Save attempt ${saveAttempts} failed:`, saveError);
+            if (saveAttempts < maxAttempts) {
+              console.log(`⏳ Waiting 1 second before retry...`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              // userIdを再設定してリトライ
+              req.session.userId = user.id;
             }
-          });
-        });
+          }
+        }
 
-        // Final save after regeneration
-        await new Promise<void>((resolve, reject) => {
+        if (saveSuccessful) {
+          console.log('🎉 Session processing complete, redirecting...');
+          res.redirect('/vip-community?auth=success');
+        } else {
+          throw new Error(`Failed to save session after ${maxAttempts} attempts`);
+        }
+      } catch (error) {
+        console.error('💥 All session save attempts failed:', error);
+        
+        // 最終手段: セッションを強制的に再作成
+        console.log('🚨 Attempting session recreation as last resort...');
+        try {
+          req.session.userId = user.id;
           req.session.save((err) => {
             if (err) {
-              console.error('❌ Final session save failed:', err);
-              reject(err);
+              console.error('💀 Final fallback also failed:', err);
+              res.redirect('/vip-community?error=session_failed');
             } else {
-              console.log('✅ Final session save successful');
-              resolve();
+              console.log('🆘 Emergency fallback succeeded');
+              res.redirect('/vip-community?auth=success&session_recovered=true');
             }
           });
-        });
-
-        console.log('🎉 Session processing complete, redirecting...');
-        res.redirect('/vip-community?auth=success');
-      } catch (error) {
-        console.error('💥 Session save process failed:', error);
-        
-        // Fallback: Force session assignment and redirect with warning
-        req.session.userId = user.id;
-        console.log('🚨 Using fallback session assignment');
-        res.redirect('/vip-community?auth=success&session_warning=true');
+        } catch (finalError) {
+          console.error('💀 Complete session failure:', finalError);
+          res.redirect('/vip-community?error=session_failed');
+        }
       }
       return;
     } catch (error: any) {

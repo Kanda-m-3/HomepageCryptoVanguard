@@ -35,7 +35,16 @@ if (process.env.DATABASE_URL) {
       pruneSessionInterval: 60 * 5, // Remove expired sessions every 5 minutes
       errorLog: (err: any) => {
         console.error('❌ PostgreSQL session store error:', err);
-      }
+        console.error('Error details:', {
+          message: err.message,
+          stack: err.stack,
+          timestamp: new Date().toISOString()
+        });
+      },
+      // セッション保存時の詳細なログ
+      logLevel: 'debug',
+      ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+      schemaName: 'public'
     });
     console.log('✅ PostgreSQL session store configured successfully');
     console.log('Session store type:', sessionStore.constructor.name);
