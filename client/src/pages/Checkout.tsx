@@ -103,15 +103,7 @@ function CheckoutForm({ report }: { report: AnalyticalReport }) {
               <FileText className="mr-2 h-4 w-4" />
               レポートをダウンロード
             </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setLocation('/reports')}
-              className="w-full"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              レポート一覧に戻る
-            </Button>
-          </div>
+            </div>
         </CardContent>
       </Card>
     );
