@@ -3,7 +3,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db } from "./db";
+import { pool } from "./db";
 
 declare module "express-session" {
   interface SessionData {
@@ -25,7 +25,7 @@ const PgSession = connectPgSimple(session);
 
 const sessionConfig = {
   store: new PgSession({
-    pool: db, // Use existing database connection
+    pool: pool, // Use PostgreSQL connection pool
     tableName: 'user_sessions',
     createTableIfMissing: true,
   }),
