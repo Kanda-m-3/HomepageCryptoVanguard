@@ -14,7 +14,6 @@ export default function Navigation() {
     { href: "/discord", label: "Discord", id: "discord" },
     { href: "/vip", label: "VIPコミュニティ", id: "vip" },
     { href: "/reports", label: "分析レポート", id: "reports" },
-    { href: "/oauth-setup", label: "OAuth設定", id: "oauth-setup" },
   ];
 
   const isActive = (path: string) => {
