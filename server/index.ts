@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Configure session middleware
-app.use(session({
+const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'crypto-vanguard-secret',
   resave: false,
   saveUninitialized: false,
@@ -33,7 +33,22 @@ app.use(session({
   // In production, consider using a proper session store like Redis
   // For now, we'll suppress the warning with a comment
   name: 'sessionId' // Change default session name for security
-}));
+};
+
+console.log('=== SESSION CONFIGURATION ===');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Session config:', {
+  ...sessionConfig,
+  secret: '[HIDDEN]',
+  cookie: {
+    ...sessionConfig.cookie,
+    sameSite: sessionConfig.cookie.sameSite,
+    secure: sessionConfig.cookie.secure,
+    domain: sessionConfig.cookie.domain || 'undefined'
+  }
+});
+
+app.use(session(sessionConfig));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -50,12 +65,34 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      
+      // Add session info for auth-related endpoints
+      if (path.includes('/auth/')) {
+        const sessionInfo = {
+          sessionId: req.sessionID,
+          userId: req.session.userId || 'none',
+          hasSession: !!req.session.userId
+        };
+        logLine += ` [Session: ${JSON.stringify(sessionInfo)}]`;
+      }
+      
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        // Truncate response for readability but include user info if present
+        let responseStr = JSON.stringify(capturedJsonResponse);
+        if (capturedJsonResponse.user) {
+          responseStr = JSON.stringify({
+            user: capturedJsonResponse.user ? {
+              id: capturedJsonResponse.user.id,
+              username: capturedJsonResponse.user.username,
+              isVipMember: capturedJsonResponse.user.isVipMember
+            } : null
+          });
+        }
+        logLine += ` :: ${responseStr}`;
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 200) {
+        logLine = logLine.slice(0, 199) + "…";
       }
 
       log(logLine);

@@ -37,13 +37,32 @@ export default function VipMember() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: userData, isLoading } = useQuery({
+  const { data: userData, isLoading, error } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchOnWindowFocus: false,
   });
 
   const user = userData?.user;
+
+  // Add detailed logging for VIP member page
+  useEffect(() => {
+    console.log('=== CLIENT: VipMember Query State ===');
+    console.log('isLoading:', isLoading);
+    console.log('error:', error);
+    console.log('userData:', userData);
+    console.log('user:', user);
+    if (user) {
+      console.log('User details:', {
+        id: user.id,
+        username: user.username,
+        discordUsername: user.discordUsername,
+        isVipMember: user.isVipMember,
+        subscriptionStatus: user.subscriptionStatus,
+        hasSubscriptionInfo: !!user.subscriptionInfo
+      });
+    }
+  }, [userData, isLoading, error, user]);
 
   const cancelSubscriptionMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/stripe/cancel-subscription"),
@@ -64,11 +83,18 @@ export default function VipMember() {
   });
 
   useEffect(() => {
+    console.log('=== CLIENT: VipMember useEffect ===');
+    console.log('Current window location:', window.location.href);
+    console.log('isLoading:', isLoading);
+    console.log('user exists:', !!user);
+    console.log('user.isVipMember:', user?.isVipMember);
+    
     // Check for payment success parameter
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     
     if (paymentStatus === 'success') {
+      console.log('Payment success detected');
       toast({
         title: "Payment Completed",
         description: "Your VIP membership registration has been completed!",
@@ -78,6 +104,7 @@ export default function VipMember() {
     }
 
     if (!isLoading && (!user || !user.isVipMember)) {
+      console.log('User not VIP or not authenticated, redirecting to vip-community');
       setLocation("/vip-community");
     }
   }, [user, isLoading, setLocation, toast]);
