@@ -185,14 +185,16 @@ export default function Discord() {
           <p className="neutral-600 mb-8">
             無料で参加でき、いつでも退会可能です。まずは気軽にのぞいてみてください。
           </p>
-          <Button 
-            className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white font-semibold px-8 py-3 text-base rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 min-w-[280px]"
-            onClick={() => window.open(discordInviteUrl, '_blank')}
-          >
-            <FaDiscord className="h-4 w-4" />
-            Discordサーバーに参加する
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          <div className="flex justify-center">
+            <Button 
+              className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white font-semibold px-8 py-3 text-base rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 min-w-[280px]"
+              onClick={() => window.open(discordInviteUrl, '_blank')}
+            >
+              <FaDiscord className="h-4 w-4" />
+              Discordサーバーに参加する
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
