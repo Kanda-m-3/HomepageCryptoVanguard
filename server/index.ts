@@ -1,7 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { db } from "./db";
 
 declare module "express-session" {
   interface SessionData {
@@ -18,8 +20,15 @@ app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Configure session middleware
+// Configure session middleware with PostgreSQL store
+const PgSession = connectPgSimple(session);
+
 const sessionConfig = {
+  store: new PgSession({
+    pool: db, // Use existing database connection
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+  }),
   secret: process.env.SESSION_SECRET || 'crypto-vanguard-secret',
   resave: false,
   saveUninitialized: false,
@@ -30,8 +39,6 @@ const sessionConfig = {
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Deploy環境でクロスサイト対応
     domain: process.env.NODE_ENV === 'production' ? undefined : undefined // ドメイン指定なし
   },
-  // In production, consider using a proper session store like Redis
-  // For now, we'll suppress the warning with a comment
   name: 'sessionId' // Change default session name for security
 };
 
