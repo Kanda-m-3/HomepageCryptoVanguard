@@ -66,13 +66,12 @@ export default function Discord() {
               クリック一つで、Crypto Vanguardの活発なコミュニティに参加できます
             </p>
             <Button 
-              size="lg"
-              className="text-crypto-cyan hover:bg-gray-100 font-bold px-12 py-6 text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 border-2 border-white/20 bg-[#74acff] pl-[32px] pr-[32px] pt-[16px] pb-[16px]"
+              className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white font-semibold px-8 py-3 text-base rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 min-w-[280px]"
               onClick={() => window.open(discordInviteUrl, '_blank')}
             >
-              <FaDiscord className="mr-2 h-5 w-5" />
-              Discordサーバーに参加
-              <ExternalLink className="ml-2 h-4 w-4" />
+              <FaDiscord className="h-4 w-4" />
+              Discordサーバーに参加する
+              <ExternalLink className="h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
@@ -187,13 +186,12 @@ export default function Discord() {
             無料で参加でき、いつでも退会可能です。まずは気軽にのぞいてみてください。
           </p>
           <Button 
-            size="lg"
-            className="bg-crypto-cyan hover:bg-blue-400 text-white font-semibold px-8 py-4"
+            className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white font-semibold px-8 py-3 text-base rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 min-w-[280px]"
             onClick={() => window.open(discordInviteUrl, '_blank')}
           >
-            <FaDiscord className="mr-2 h-5 w-5" />
+            <FaDiscord className="h-4 w-4" />
             Discordサーバーに参加する
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
