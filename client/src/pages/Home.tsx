@@ -23,7 +23,7 @@ export default function Home() {
                   <span className="crypto-gold">Crypto Vanguard</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-gray-200 mb-8 leading-relaxed">
-                  DeFi & Web3の先駆者として、暗号資産市場の最前線で情報を収集・分析し、<br className="hidden md:block" />
+                  DeFi & Web3の先駆者として暗号資産市場の最前線で情報を収集・分析、<br className="hidden md:block" />
                   次の大きな波を掴むための洞察を提供します
                 </p>
               </div>
