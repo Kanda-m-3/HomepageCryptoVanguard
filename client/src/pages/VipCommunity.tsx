@@ -41,35 +41,47 @@ export default function VipCommunity() {
   });
 
   useEffect(() => {
-    // Check URL parameters for authentication state
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    const auth = urlParams.get('auth');
+    console.log('=== CLIENT: VipCommunity useEffect triggered ===');
+    console.log('Current location:', location);
+    console.log('Window location:', window.location.href);
 
-    if (error === 'not_member') {
-      setShowJoinFlow(true);
+    // Check for authentication success parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const authStatus = urlParams.get('auth');
+    const errorStatus = urlParams.get('error');
+
+    console.log('URL params:', { authStatus, errorStatus });
+
+    if (authStatus === 'success') {
+      console.log('Authentication success detected from URL params');
       toast({
-        title: "Discord サーバー参加が必要",
-        description: "VIPコミュニティにアクセスするには、まずDiscordサーバーに参加してください。",
-        variant: "destructive",
-      });
-    } else if (error === 'auth_failed') {
-      toast({
-        title: "認証エラー",
-        description: "Discord認証に失敗しました。もう一度お試しください。",
-        variant: "destructive",
-      });
-      setIsAuthenticated(false);
-    } else if (auth === 'success') {
-      // Clean up URL parameters first
-      window.history.replaceState({}, '', '/vip-community');
-      // Then check authentication status
-      checkAuthenticationStatus();
-      toast({
-        title: "認証成功",
+        title: "認証完了",
         description: "Discord認証が完了しました。VIPコミュニティへようこそ！",
       });
+
+      // Check auth status after success
+      setTimeout(() => {
+        console.log('Checking auth status after success toast...');
+        checkAuthenticationStatus();
+      }, 1000);
+    } else if (errorStatus) {
+      console.log('Authentication error detected:', errorStatus);
+      let errorMessage = "認証に失敗しました。";
+      if (errorStatus === 'not_member') {
+        errorMessage = "Crypto Vanguard Discordサーバーのメンバーシップが必要です。";
+      } else if (errorStatus === 'auth_failed') {
+        errorMessage = "Discord認証に失敗しました。再度お試しください。";
+      }
+
+      toast({
+        title: "認証エラー",
+        description: errorMessage,
+        variant: "destructive",
+      });
+
+      checkAuthenticationStatus();
     } else {
+      console.log('No auth/error params, checking authentication status...');
       // Check authentication status
       checkAuthenticationStatus();
     }
@@ -159,7 +171,7 @@ export default function VipCommunity() {
                     </div>
                   </div>
                 </div>
-                
+
                 <Button 
                   onClick={handleDiscordLogin}
                   className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3"
@@ -238,7 +250,7 @@ export default function VipCommunity() {
           <p className="text-xl neutral-600 max-w-2xl mx-auto leading-relaxed">限定VIPコミュニティに参加して、専門家による分析、取引シグナル、限定インサイト、専門家とのディスカッションにアクセスしましょう。</p>
         </div>
 
-        
+
 
         {/* Benefits */}
         <div className="mb-12">
@@ -266,7 +278,7 @@ export default function VipCommunity() {
           </div>
         </div>
 
-        
+
 
         {/* Pricing Tiers */}
         <div className="mb-12">

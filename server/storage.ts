@@ -264,7 +264,19 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
+    console.log('DB: Getting user by ID:', id);
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    console.log('DB: User retrieved:', user ? {
+      id: user.id,
+      username: user.username,
+      discordId: user.discordId,
+      discordUsername: user.discordUsername,
+      isServerMember: user.isServerMember,
+      isVipMember: user.isVipMember,
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      subscriptionStatus: user.subscriptionStatus
+    } : 'NULL');
     return user || undefined;
   }
 
@@ -290,41 +302,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrUpdateDiscordUser(discordUser: InsertDiscordUser): Promise<User> {
+    console.log('DB: Creating or updating Discord user:', discordUser);
+    
     if (!discordUser.discordId) {
       throw new Error("Discord ID is required");
     }
 
+    console.log('DB: Checking for existing user with Discord ID:', discordUser.discordId);
     const existingUser = await this.getUserByDiscordId(discordUser.discordId);
     
     if (existingUser) {
+      console.log('DB: Updating existing user:', existingUser.id);
       // Update existing user
+      const updateData = {
+        discordUsername: discordUser.discordUsername,
+        discordAvatar: discordUser.discordAvatar,
+        email: discordUser.email || existingUser.email,
+        isServerMember: discordUser.isServerMember,
+        isVipMember: discordUser.isVipMember,
+      };
+      console.log('DB: Update data:', updateData);
+      
       const [user] = await db
         .update(users)
-        .set({
-          discordUsername: discordUser.discordUsername,
-          discordAvatar: discordUser.discordAvatar,
-          email: discordUser.email || existingUser.email,
-          isServerMember: discordUser.isServerMember,
-          isVipMember: discordUser.isVipMember,
-        })
+        .set(updateData)
         .where(eq(users.discordId, discordUser.discordId))
         .returning();
+        
+      console.log('DB: User updated successfully:', {
+        id: user.id,
+        username: user.username,
+        discordId: user.discordId,
+        discordUsername: user.discordUsername,
+        isServerMember: user.isServerMember,
+        isVipMember: user.isVipMember
+      });
+      
       return user;
     } else {
+      console.log('DB: Creating new user');
       // Create new user
+      const insertData = {
+        username: discordUser.discordUsername || 'discord_user',
+        password: '', // Discord users don't need passwords
+        email: discordUser.email,
+        discordId: discordUser.discordId,
+        discordUsername: discordUser.discordUsername,
+        discordAvatar: discordUser.discordAvatar,
+        isServerMember: discordUser.isServerMember,
+        isVipMember: discordUser.isVipMember,
+      };
+      console.log('DB: Insert data:', insertData);
+      
       const [user] = await db
         .insert(users)
-        .values({
-          username: discordUser.discordUsername || 'discord_user',
-          password: '', // Discord users don't need passwords
-          email: discordUser.email,
-          discordId: discordUser.discordId,
-          discordUsername: discordUser.discordUsername,
-          discordAvatar: discordUser.discordAvatar,
-          isServerMember: discordUser.isServerMember,
-          isVipMember: discordUser.isVipMember,
-        })
+        .values(insertData)
         .returning();
+        
+      console.log('DB: User created successfully:', {
+        id: user.id,
+        username: user.username,
+        discordId: user.discordId,
+        discordUsername: user.discordUsername,
+        isServerMember: user.isServerMember,
+        isVipMember: user.isVipMember
+      });
+      
       return user;
     }
   }

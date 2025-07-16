@@ -107,35 +107,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Discord OAuth2 callback
   app.get("/api/auth/discord/callback", async (req, res) => {
     const { code } = req.query;
+    const sessionId = req.sessionID;
+    
+    console.log('=== DISCORD OAUTH CALLBACK START ===');
+    console.log('Request Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Session ID:', sessionId);
+    console.log('Session before auth:', JSON.stringify(req.session, null, 2));
+    console.log('Query params:', JSON.stringify(req.query, null, 2));
+    console.log('Environment:', process.env.NODE_ENV);
 
     if (!code) {
+      console.log('ERROR: No authorization code provided');
       return res.status(400).json({ error: "No authorization code provided" });
     }
 
     try {
       // Exchange code for access token
       const redirectUri = getDiscordRedirectUri(req);
+      console.log('Redirect URI used:', redirectUri);
+      
+      const tokenRequestBody = {
+        client_id: DISCORD_CLIENT_ID!,
+        client_secret: DISCORD_CLIENT_SECRET!,
+        grant_type: 'authorization_code',
+        code: code as string,
+        redirect_uri: redirectUri,
+      };
+      
+      console.log('Token request body:', { ...tokenRequestBody, client_secret: '[HIDDEN]' });
+      
       const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          client_id: DISCORD_CLIENT_ID!,
-          client_secret: DISCORD_CLIENT_SECRET!,
-          grant_type: 'authorization_code',
-          code: code as string,
-          redirect_uri: redirectUri,
-        }),
+        body: new URLSearchParams(tokenRequestBody),
       });
 
       const tokenData = await tokenResponse.json();
+      console.log('Discord token response status:', tokenResponse.status);
+      console.log('Discord token response:', { ...tokenData, access_token: tokenData.access_token ? '[PRESENT]' : '[MISSING]' });
 
       if (!tokenResponse.ok) {
+        console.log('ERROR: Discord token exchange failed:', tokenData);
         throw new Error(`Discord token exchange failed: ${tokenData.error}`);
       }
 
       // Get user information
+      console.log('Fetching Discord user info...');
       const userResponse = await fetch('https://discord.com/api/users/@me', {
         headers: {
           Authorization: `Bearer ${tokenData.access_token}`,
@@ -143,8 +162,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const discordUser = await userResponse.json();
+      console.log('Discord user info:', {
+        id: discordUser.id,
+        username: discordUser.username,
+        email: discordUser.email,
+        avatar: discordUser.avatar
+      });
 
       // Get user's guilds to check server membership
+      console.log('Fetching Discord user guilds...');
       const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
         headers: {
           Authorization: `Bearer ${tokenData.access_token}`,
@@ -164,7 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const actualIsServerMember = isServerMember;
       
       if (!actualIsServerMember) {
-        console.log('User is not a member of Crypto Vanguard server');
+        console.log('ERROR: User is not a member of Crypto Vanguard server');
+        console.log('Available guilds:', guilds);
         return res.redirect('/vip-community?error=not_member');
       }
 
@@ -182,17 +209,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isVipMember,
       };
 
+      console.log('Creating/updating user with data:', userData);
       const user = await storage.createOrUpdateDiscordUser(userData);
+      console.log('User created/updated in DB:', {
+        id: user.id,
+        username: user.username,
+        discordId: user.discordId,
+        discordUsername: user.discordUsername,
+        isServerMember: user.isServerMember,
+        isVipMember: user.isVipMember
+      });
 
       // Store user in session
+      console.log('Setting session userId to:', user.id);
       req.session.userId = user.id;
       
-      console.log('Discord user authenticated:', user.discordUsername, 'Server member:', actualIsServerMember, 'User ID:', user.id);
+      console.log('Session after setting userId:', JSON.stringify(req.session, null, 2));
+      
+      console.log('Discord user authenticated successfully:', {
+        username: user.discordUsername,
+        serverMember: actualIsServerMember,
+        userId: user.id,
+        sessionId: sessionId
+      });
+      
+      console.log('=== DISCORD OAUTH CALLBACK SUCCESS ===');
       
       // Redirect to VIP community page
       res.redirect('/vip-community?auth=success');
     } catch (error: any) {
+      console.log('=== DISCORD OAUTH CALLBACK ERROR ===');
       console.error('Discord OAuth error:', error);
+      console.error('Error stack:', error.stack);
       res.redirect('/vip-community?error=auth_failed');
     }
   });
@@ -208,14 +256,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current Discord user info with subscription details
   app.get("/api/auth/user", async (req, res) => {
+    const sessionId = req.sessionID;
+    console.log('=== AUTH USER CHECK START ===');
+    console.log('Session ID:', sessionId);
+    console.log('Session data:', JSON.stringify(req.session, null, 2));
+    console.log('Request headers (relevant):', {
+      'user-agent': req.headers['user-agent'],
+      'cookie': req.headers.cookie ? '[PRESENT]' : '[MISSING]',
+      'host': req.headers.host,
+      'x-forwarded-for': req.headers['x-forwarded-for'],
+      'x-forwarded-proto': req.headers['x-forwarded-proto']
+    });
+    
     try {
       if (!req.session.userId) {
+        console.log('No userId in session - user not authenticated');
+        console.log('=== AUTH USER CHECK: NOT AUTHENTICATED ===');
         return res.json({ user: null });
       }
 
+      console.log('Found userId in session:', req.session.userId);
+      console.log('Fetching user from database...');
+      
       const user = await storage.getUser(req.session.userId);
+      console.log('User retrieved from DB:', user ? {
+        id: user.id,
+        username: user.username,
+        discordId: user.discordId,
+        discordUsername: user.discordUsername,
+        isServerMember: user.isServerMember,
+        isVipMember: user.isVipMember,
+        stripeCustomerId: user.stripeCustomerId,
+        stripeSubscriptionId: user.stripeSubscriptionId,
+        subscriptionStatus: user.subscriptionStatus
+      } : 'NULL');
+      
       if (!user) {
+        console.log('User not found in DB - clearing session');
         delete req.session.userId;
+        console.log('=== AUTH USER CHECK: USER NOT FOUND IN DB ===');
         return res.json({ user: null });
       }
 
@@ -223,11 +302,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // --- Stripe からサブスク詳細を取得 ---
       if (user.stripeSubscriptionId) {
+        console.log('Fetching Stripe subscription:', user.stripeSubscriptionId);
         try {
           const subscription = await stripe.subscriptions.retrieve(
             user.stripeSubscriptionId,
             { expand: ['latest_invoice'] }   // 既存の expand 指定
           );
+
+          console.log('Stripe subscription retrieved:', {
+            id: subscription.id,
+            status: subscription.status,
+            current_period_end: subscription.current_period_end,
+            cancel_at_period_end: subscription.cancel_at_period_end
+          });
 
           const periodEndRaw =
             subscription.current_period_end ??
@@ -258,38 +345,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: 'error',
             };
           }
+          
+          console.log('Subscription info prepared:', subscriptionInfo);
         } catch (stripeError) {
           console.error('Error fetching subscription:', stripeError);
         }
+      } else {
+        console.log('No Stripe subscription ID found for user');
       }
 
       /* ===== ★★ ここから自己修復ブロック ★★ ===== */
       if (subscriptionInfo) {
         const shouldBeVip = subscriptionInfo.status === 'active';
+        console.log('VIP status check - should be VIP:', shouldBeVip, 'current VIP status:', user.isVipMember);
 
         if (shouldBeVip !== user.isVipMember) {
+          console.log('VIP status mismatch detected - updating user');
           // DB を修正
           await storage.updateUser(user.id, { isVipMember: shouldBeVip });
 
           // Discord 側も同期
           if (user.discordId) {
+            console.log('Syncing Discord VIP role for user:', user.discordId);
             await assignDiscordVipRole(user.discordId, shouldBeVip);
           }
 
           // レスポンスに反映（メモリ上の user オブジェクトも更新）
           user.isVipMember = shouldBeVip;
+          console.log('User VIP status updated to:', shouldBeVip);
         }
       }
       /* ===== ★★ ここまで追加 ★★ ===== */
       
-      res.json({ 
+      const responseData = {
         user: {
           ...user,
           subscriptionInfo
         }
+      };
+      
+      console.log('Sending user response:', {
+        userId: responseData.user.id,
+        username: responseData.user.username,
+        isVipMember: responseData.user.isVipMember,
+        subscriptionStatus: responseData.user.subscriptionStatus,
+        hasSubscriptionInfo: !!responseData.user.subscriptionInfo
       });
+      
+      console.log('=== AUTH USER CHECK: SUCCESS ===');
+      
+      res.json(responseData);
     } catch (error) {
+      console.log('=== AUTH USER CHECK: ERROR ===');
       console.error('Error getting user:', error);
+      console.error('Error stack:', error.stack);
       res.json({ user: null });
     }
   });
