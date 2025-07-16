@@ -42,19 +42,6 @@ const sessionConfig = {
   name: 'sessionId' // Change default session name for security
 };
 
-console.log('=== SESSION CONFIGURATION ===');
-console.log('Environment:', process.env.NODE_ENV);
-console.log('Session config:', {
-  ...sessionConfig,
-  secret: '[HIDDEN]',
-  cookie: {
-    ...sessionConfig.cookie,
-    sameSite: sessionConfig.cookie.sameSite,
-    secure: sessionConfig.cookie.secure,
-    domain: sessionConfig.cookie.domain || 'undefined'
-  }
-});
-
 app.use(session(sessionConfig));
 
 app.use((req, res, next) => {
@@ -73,28 +60,10 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       
-      // Add session info for auth-related endpoints
-      if (path.includes('/auth/')) {
-        const sessionInfo = {
-          sessionId: req.sessionID,
-          userId: req.session.userId || 'none',
-          hasSession: !!req.session.userId
-        };
-        logLine += ` [Session: ${JSON.stringify(sessionInfo)}]`;
-      }
+      
       
       if (capturedJsonResponse) {
-        // Truncate response for readability but include user info if present
         let responseStr = JSON.stringify(capturedJsonResponse);
-        if (capturedJsonResponse.user) {
-          responseStr = JSON.stringify({
-            user: capturedJsonResponse.user ? {
-              id: capturedJsonResponse.user.id,
-              username: capturedJsonResponse.user.username,
-              isVipMember: capturedJsonResponse.user.isVipMember
-            } : null
-          });
-        }
         logLine += ` :: ${responseStr}`;
       }
 
