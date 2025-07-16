@@ -33,11 +33,11 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
+    secure: false, // Replit deploymentでHTTPS終端が複雑なためfalseに設定
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true, // Prevent XSS attacks
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Deploy環境でクロスサイト対応
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // ドメイン指定なし
+    sameSite: 'lax', // Replit環境に最適化された設定
+    domain: undefined // ドメイン指定なしでReplit環境に対応
   },
   name: 'sessionId' // Change default session name for security
 };
