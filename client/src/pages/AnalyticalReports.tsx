@@ -195,7 +195,6 @@ export default function AnalyticalReports() {
                     </p>
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center">
-                        <DollarSign className="h-5 w-5 crypto-gold mr-1" />
                         <span className="text-2xl font-bold crypto-gold">
                           ¥{parseInt(report.price).toLocaleString()}
                         </span>
